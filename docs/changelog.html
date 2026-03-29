@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>更新日志 - FD WebSocket Push 插件文档</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🚀</span>
+                    FD WebSocket Push
+                </h1>
+                <p class="subtitle">更新日志</p>
+            </div>
+        </header>
+
+        <nav class="navigation">
+            <ul class="nav-list">
+                <li><a href="index.html" class="nav-link">概述</a></li>
+                <li><a href="installation.html" class="nav-link">安装配置</a></li>
+                <li><a href="api-reference.html" class="nav-link">API 参考</a></li>
+                <li><a href="events.html" class="nav-link">事件系统</a></li>
+                <li><a href="cache.html" class="nav-link">缓存管理</a></li>
+                <li><a href="migration.html" class="nav-link">迁移指南</a></li>
+                <li><a href="troubleshooting.html" class="nav-link">故障排除</a></li>
+                <li><a href="examples.html" class="nav-link">使用示例</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <section class="content-section">
+                <h2>更新日志</h2>
+
+                <div class="changelog-entry">
+                    <div class="version-header">
+                        <h3>版本 1.0.1</h3>
+                        <span class="release-date">2025-07-18</span>
+                        <span class="release-type patch">补丁版本</span>
+                    </div>
+
+                    <div class="changelog-content">
+                        <h4>🐛 错误修复</h4>
+                        <ul class="changelog-list">
+                            <li><strong>修复语法错误</strong> - 修复 <code>class-taxonomy-event-handler.php</code> 第433行多余的右大括号导致的PHP解析错误</li>
+                            <li><strong>修复分类法索引页刷新问题</strong> - 修复文章状态更新后，category、tag和自定义分类法条目索引页的文章数量没有同步刷新的问题</li>
+                        </ul>
+
+                        <h4>🔧 改进项目</h4>
+                        <ul class="changelog-list">
+                            <li><strong>完善缓存失效逻辑</strong> - 在文章插入、删除、状态变化时正确调用分类法缓存失效方法</li>
+                            <li><strong>增强WebSocket事件通知</strong> - 添加分类法更新的WebSocket事件通知，确保前端页面能及时更新文章数量</li>
+                            <li><strong>优化事件处理流程</strong> - 改进文章状态变化时的事件处理逻辑，确保所有相关页面都能收到更新通知</li>
+                        </ul>
+
+                        <h4>📝 技术细节</h4>
+                        <ul class="changelog-list">
+                            <li><strong>修复的文件</strong>：
+                                <ul>
+                                    <li><code>includes/class-taxonomy-event-handler.php</code> - 修复语法错误</li>
+                                    <li><code>includes/class-cache-invalidator.php</code> - 完善缓存失效和事件通知逻辑</li>
+                                </ul>
+                            </li>
+                            <li><strong>新增方法</strong>：
+                                <ul>
+                                    <li><code>notify_taxonomy_updates_for_post()</code> - 发送分类法更新的WebSocket事件</li>
+                                </ul>
+                            </li>
+                            <li><strong>改进的方法</strong>：
+                                <ul>
+                                    <li><code>invalidate_caches_on_post_insert()</code> - 添加分类法缓存失效调用</li>
+                                    <li><code>invalidate_caches_on_post_delete()</code> - 添加分类法缓存失效调用</li>
+                                    <li><code>invalidate_caches_on_post_status_change()</code> - 添加分类法缓存失效调用</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                        <h4>🎯 影响范围</h4>
+                        <ul class="changelog-list">
+                            <li><strong>分类法索引页</strong> - category-index-page、tag-index-page等索引页面现在能正确更新文章数量</li>
+                            <li><strong>分类法条目页</strong> - 具体的分类、标签、自定义分类法页面能正确更新文章数量</li>
+                            <li><strong>WebSocket事件</strong> - 前端能收到分类法更新事件，实现实时刷新</li>
+                            <li><strong>缓存失效</strong> - Next.js缓存能正确失效，确保数据一致性</li>
+                        </ul>
+
+                        <h4>⚡ 升级说明</h4>
+                        <ul class="changelog-list">
+                            <li><strong>无需配置变更</strong> - 此版本为纯错误修复，无需修改任何配置</li>
+                            <li><strong>即时生效</strong> - 更新插件后立即生效，无需额外操作</li>
+                            <li><strong>向后兼容</strong> - 完全兼容现有功能，不影响已有的事件处理</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="changelog-entry">
+                    <div class="version-header">
+                        <h3>版本 1.0.0</h3>
+                        <span class="release-date">2024-01-15</span>
+                        <span class="release-type major">重大版本</span>
+                    </div>
+                    
+                    <div class="changelog-content">
+                        <h4>🎉 重大重构</h4>
+                        <p>从单一文件 <code>fd-pusher</code> 插件重构为模块化的 <code>fd-websocket-push</code> 插件。</p>
+                        
+                        <h4>✨ 新增功能</h4>
+                        <ul class="changelog-list">
+                            <li><strong>模块化架构</strong> - 将单一 1656 行文件拆分为 7 个专门的类文件</li>
+                            <li><strong>单例模式</strong> - 所有处理器类采用单例模式，提高资源效率</li>
+                            <li><strong>向后兼容</strong> - 提供全局函数包装器，确保旧代码继续工作</li>
+                            <li><strong>详细文档</strong> - 完整的 HTML 文档系统，包含 API 参考和使用示例</li>
+                            <li><strong>错误处理增强</strong> - 更完善的错误处理和日志记录机制</li>
+                        </ul>
+
+                        <h4>🔧 改进项目</h4>
+                        <ul class="changelog-list">
+                            <li><strong>代码组织</strong> - 清晰的职责分离，每个类专注于特定功能</li>
+                            <li><strong>性能优化</strong> - 优化了事件处理流程，减少重复代码</li>
+                            <li><strong>可维护性</strong> - 更好的代码结构，便于后续维护和扩展</li>
+                            <li><strong>日志系统</strong> - 统一的日志记录格式和级别管理</li>
+                        </ul>
+
+                        <h4>📁 文件结构</h4>
+                        <pre><code>fd-websocket-push/
+├── fd-websocket-push.php              # 主插件文件
+├── includes/
+│   ├── class-helper.php               # 辅助工具类
+│   ├── class-cache-invalidator.php    # 缓存失效处理类
+│   ├── class-websocket-pusher.php     # WebSocket推送处理类
+│   ├── class-post-event-handler.php   # 文章事件处理类
+│   ├── class-taxonomy-event-handler.php # 分类法事件处理类
+│   └── class-payment-event-handler.php  # 支付事件处理类
+├── docs/                              # 完整文档系统
+└── README.md                          # 说明文档</code></pre>
+
+                        <h4>🔄 迁移说明</h4>
+                        <ul class="changelog-list">
+                            <li><strong>零配置变更</strong> - 使用相同的配置常量</li>
+                            <li><strong>零功能丢失</strong> - 所有原有功能都已完整迁移</li>
+                            <li><strong>平滑迁移</strong> - 提供详细的迁移指南</li>
+                            <li><strong>回滚支持</strong> - 可以随时回滚到旧版本</li>
+                        </ul>
+
+                        <h4>🛡️ 兼容性</h4>
+                        <ul class="changelog-list">
+                            <li><strong>WordPress</strong> - 兼容 WordPress 5.0+</li>
+                            <li><strong>PHP</strong> - 兼容 PHP 7.4+</li>
+                            <li><strong>ACF</strong> - 完整支持 Advanced Custom Fields 插件</li>
+                            <li><strong>向后兼容</strong> - 提供 <code>fd_pusher_*</code> 函数包装器</li>
+                        </ul>
+
+                        <h4>📊 功能对比</h4>
+                        <table class="changelog-table">
+                            <tr>
+                                <th>功能</th>
+                                <th>fd-pusher</th>
+                                <th>fd-websocket-push</th>
+                            </tr>
+                            <tr>
+                                <td>文章事件推送</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>分类法事件推送</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>支付解锁事件</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>缓存自动失效</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>ACF 字段支持</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>模块化架构</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>单例模式</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>完整文档</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="changelog-entry">
+                    <div class="version-header">
+                        <h3>版本 0.9.x (fd-pusher)</h3>
+                        <span class="release-date">2023-12-01</span>
+                        <span class="release-type legacy">历史版本</span>
+                    </div>
+                    
+                    <div class="changelog-content">
+                        <h4>📝 历史功能</h4>
+                        <p>这是重构前的 <code>fd-pusher</code> 插件的功能记录。</p>
+                        
+                        <ul class="changelog-list">
+                            <li><strong>基础推送功能</strong> - 文章、分类法事件的 WebSocket 推送</li>
+                            <li><strong>缓存失效</strong> - Next.js 缓存标签和路径失效</li>
+                            <li><strong>支付集成</strong> - 文章解锁支付成功事件</li>
+                            <li><strong>ACF 支持</strong> - Advanced Custom Fields 插件集成</li>
+                            <li><strong>权限控制</strong> - 基于用户级别的推送目标控制</li>
+                        </ul>
+
+                        <h4>⚠️ 已知问题</h4>
+                        <ul class="changelog-list">
+                            <li><strong>代码维护</strong> - 单一文件过大，难以维护</li>
+                            <li><strong>功能扩展</strong> - 添加新功能困难</li>
+                            <li><strong>代码复用</strong> - 存在重复代码</li>
+                            <li><strong>文档缺失</strong> - 缺乏详细的使用文档</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>版本说明</h3>
+                    
+                    <div class="version-legend">
+                        <div class="legend-item">
+                            <span class="release-type major">重大版本</span>
+                            <p>包含重大功能变更、架构重构或不兼容更新</p>
+                        </div>
+                        
+                        <div class="legend-item">
+                            <span class="release-type minor">次要版本</span>
+                            <p>新增功能、改进和增强，保持向后兼容</p>
+                        </div>
+                        
+                        <div class="legend-item">
+                            <span class="release-type patch">补丁版本</span>
+                            <p>错误修复、安全更新和小幅改进</p>
+                        </div>
+                        
+                        <div class="legend-item">
+                            <span class="release-type legacy">历史版本</span>
+                            <p>已停止维护的旧版本记录</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>升级建议</h3>
+                    
+                    <div class="upgrade-recommendation">
+                        <h4>🎯 推荐升级到 v1.0.0</h4>
+                        <p>强烈建议所有用户升级到最新的 v1.0.0 版本，享受以下优势：</p>
+                        
+                        <ul class="feature-list">
+                            <li><strong>更好的稳定性</strong> - 模块化架构提供更好的稳定性</li>
+                            <li><strong>更易维护</strong> - 清晰的代码结构便于问题排查</li>
+                            <li><strong>更好的性能</strong> - 优化的事件处理流程</li>
+                            <li><strong>完整文档</strong> - 详细的使用指南和 API 参考</li>
+                            <li><strong>未来支持</strong> - 后续新功能将基于新架构开发</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>技术支持</h3>
+                    
+                    <p>如果您在升级过程中遇到任何问题，请通过以下方式获取帮助：</p>
+                    
+                    <ul class="feature-list">
+                        <li><strong>文档</strong> - 查阅 <a href="migration.html">迁移指南</a> 和 <a href="troubleshooting.html">故障排除</a></li>
+                        <li><strong>GitHub</strong> - 在 <a href="https://github.com/your-repo/fd-websocket-push/issues" target="_blank">GitHub Issues</a> 提交问题</li>
+                        <li><strong>邮件支持</strong> - 发送邮件到 <a href="mailto:support@example.com">support@example.com</a></li>
+                        <li><strong>社区</strong> - 参与社区讨论和经验分享</li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <h4>📋 升级检查清单</h4>
+                    <ul>
+                        <li>✅ 备份现有环境和数据</li>
+                        <li>✅ 确认系统要求（WordPress 5.0+, PHP 7.4+）</li>
+                        <li>✅ 阅读迁移指南</li>
+                        <li>✅ 在测试环境中验证功能</li>
+                        <li>✅ 准备回滚计划</li>
+                        <li>✅ 通知相关团队成员</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 FD WebSocket Push Plugin. 保留所有权利。</p>
+                <p>
+                    <a href="https://github.com/your-repo/fd-websocket-push" target="_blank">GitHub</a> |
+                    <a href="mailto:support@example.com">技术支持</a> |
+                    <a href="index.html">返回首页</a>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事件系统 - FD WebSocket Push 插件文档</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🚀</span>
+                    FD WebSocket Push
+                </h1>
+                <p class="subtitle">事件系统详解</p>
+            </div>
+        </header>
+
+        <nav class="navigation">
+            <ul class="nav-list">
+                <li><a href="index.html" class="nav-link">概述</a></li>
+                <li><a href="installation.html" class="nav-link">安装配置</a></li>
+                <li><a href="api-reference.html" class="nav-link">API 参考</a></li>
+                <li><a href="events.html" class="nav-link active">事件系统</a></li>
+                <li><a href="cache.html" class="nav-link">缓存管理</a></li>
+                <li><a href="migration.html" class="nav-link">迁移指南</a></li>
+                <li><a href="troubleshooting.html" class="nav-link">故障排除</a></li>
+                <li><a href="examples.html" class="nav-link">使用示例</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <section class="content-section">
+                <h2>事件系统</h2>
+
+                <div class="info-section">
+                    <h3>事件系统概述</h3>
+                    <p>FD WebSocket Push 插件的事件系统负责监听 WordPress 中的各种变化，并将这些变化实时推送到前端应用。系统支持多种事件类型，每种事件都有特定的数据结构和目标受众。</p>
+                </div>
+
+                <div class="info-section">
+                    <h3>文章事件 (Post Events)</h3>
+                    
+                    <h4>post:updated</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 文章被更新时</p>
+                        <p><strong>目标受众:</strong> 基于文章访问权限确定</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "post:updated",
+  "target": "public|authenticated_users|level_X",
+  "data": {
+    "postId": 123,
+    "postType": "post",
+    "status": "publish",
+    "shortUuid": "abc123",
+    "slug": "sample-post"
+  }
+}</code></pre>
+                    </div>
+
+                    <h4>post:updated-for-lists</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 已发布文章被更新时</p>
+                        <p><strong>目标受众:</strong> 公开用户</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "post:updated-for-lists",
+  "target": "public",
+  "data": {
+    "postId": 123,
+    "postType": "post",
+    "status": "publish",
+    "shortUuid": "abc123",
+    "slug": "sample-post",
+    "title": "文章标题",
+    "excerpt": "文章摘要",
+    "date": "2024-01-01 12:00:00",
+    "modified": "2024-01-01 12:30:00",
+    "categories": [
+      {"id": 1, "slug": "tech", "name": "技术"}
+    ],
+    "tags": [
+      {"id": 5, "slug": "wordpress", "name": "WordPress"}
+    ],
+    "customTaxonomies": {
+      "company": [
+        {"id": 10, "slug": "example-corp", "name": "示例公司"}
+      ]
+    }
+  }
+}</code></pre>
+                    </div>
+
+                    <h4>post:inserted</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 新文章发布时</p>
+                        <p><strong>目标受众:</strong> 公开用户</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "post:inserted",
+  "target": "public",
+  "data": {
+    "postId": 124,
+    "postType": "post",
+    "status": "publish",
+    "shortUuid": "def456",
+    "slug": "new-post",
+    "title": "新文章标题",
+    "excerpt": "新文章摘要",
+    "date": "2024-01-01 13:00:00",
+    "modified": "2024-01-01 13:00:00"
+  }
+}</code></pre>
+                    </div>
+
+                    <h4>post:deleted</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 已发布文章被删除时</p>
+                        <p><strong>目标受众:</strong> 公开用户</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "post:deleted",
+  "target": "public",
+  "data": {
+    "postId": 125,
+    "postType": "post",
+    "status": "publish",
+    "shortUuid": "ghi789",
+    "slug": "deleted-post",
+    "title": "被删除的文章"
+  }
+}</code></pre>
+                    </div>
+
+                    <h4>post:status-published / post:status-unpublished</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 文章发布状态变化时</p>
+                        <p><strong>目标受众:</strong> 公开用户</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "post:status-published",
+  "target": "public",
+  "data": {
+    "postId": 126,
+    "postType": "post",
+    "oldStatus": "draft",
+    "newStatus": "publish",
+    "shortUuid": "jkl012",
+    "slug": "status-changed-post",
+    "title": "状态变化的文章",
+    "excerpt": "文章摘要",
+    "date": "2024-01-01 14:00:00",
+    "modified": "2024-01-01 14:00:00"
+  }
+}</code></pre>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>分类法事件 (Taxonomy Events)</h3>
+                    
+                    <h4>tag:updated</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 标签被创建、编辑或删除时</p>
+                        <p><strong>目标受众:</strong> 公开用户</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "tag:updated",
+  "target": "public",
+  "data": {
+    "termId": 15,
+    "taxonomy": "post_tag",
+    "slug": "new-tag",
+    "name": "新标签"
+  }
+}</code></pre>
+                    </div>
+
+                    <h4>category:updated</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 分类被创建、编辑或删除时</p>
+                        <p><strong>目标受众:</strong> 公开用户</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "category:updated",
+  "target": "public",
+  "data": {
+    "termId": 8,
+    "taxonomy": "category",
+    "slug": "technology",
+    "name": "技术"
+  }
+}</code></pre>
+                    </div>
+
+                    <h4>taxonomy:updated</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 自定义分类法条目被创建、编辑或删除时</p>
+                        <p><strong>目标受众:</strong> 公开用户</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "taxonomy:updated",
+  "target": "public",
+  "data": {
+    "termId": 25,
+    "taxonomy": "company",
+    "slug": "example-corp",
+    "name": "示例公司"
+  }
+}</code></pre>
+                    </div>
+
+                    <h4>list:item-added / list:item-removed</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 文章的分类法关联发生变化时</p>
+                        <p><strong>目标受众:</strong> 公开用户</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "list:item-added",
+  "target": "public",
+  "data": {
+    "postId": 127,
+    "affectedTerms": [
+      {
+        "taxonomy": "category",
+        "slug": "news",
+        "termId": 12
+      },
+      {
+        "taxonomy": "post_tag",
+        "slug": "breaking",
+        "termId": 18
+      }
+    ]
+  }
+}</code></pre>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>支付事件 (Payment Events)</h3>
+                    
+                    <h4>post:unlocked</h4>
+                    <div class="event-details">
+                        <p><strong>触发时机:</strong> 用户成功支付解锁文章时</p>
+                        <p><strong>目标受众:</strong> 特定用户 (user_X)</p>
+                        <p><strong>数据结构:</strong></p>
+                        <pre><code>{
+  "event": "post:unlocked",
+  "target": "user_123",
+  "data": {
+    "postId": 128
+  }
+}</code></pre>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>目标受众类型</h3>
+                    
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>public</strong></td>
+                            <td>所有用户，包括未登录用户</td>
+                        </tr>
+                        <tr>
+                            <td><strong>authenticated_users</strong></td>
+                            <td>所有已登录用户</td>
+                        </tr>
+                        <tr>
+                            <td><strong>level_X</strong></td>
+                            <td>特定会员等级的用户（X 为等级 ID）</td>
+                        </tr>
+                        <tr>
+                            <td><strong>user_X</strong></td>
+                            <td>特定用户（X 为用户 ID）</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="info-section">
+                    <h3>事件触发条件</h3>
+                    
+                    <h4>文章事件触发条件</h4>
+                    <ul class="feature-list">
+                        <li><strong>文章类型检查</strong> - 只处理公开的文章类型</li>
+                        <li><strong>状态检查</strong> - 某些事件只在特定状态下触发</li>
+                        <li><strong>权限检查</strong> - 根据文章访问权限确定推送目标</li>
+                        <li><strong>更新检查</strong> - 区分新建和更新操作</li>
+                    </ul>
+
+                    <h4>分类法事件触发条件</h4>
+                    <ul class="feature-list">
+                        <li><strong>分类法类型检查</strong> - 只处理公开的分类法</li>
+                        <li><strong>元数据过滤</strong> - 忽略内部和临时元数据</li>
+                        <li><strong>ACF 支持</strong> - 支持 ACF 字段更新</li>
+                        <li><strong>关联变化检测</strong> - 检测文章与分类法的关联变化</li>
+                    </ul>
+
+                    <h4>支付事件触发条件</h4>
+                    <ul class="feature-list">
+                        <li><strong>订单类型验证</strong> - 只处理文章解锁订单</li>
+                        <li><strong>支付状态确认</strong> - 确认支付成功</li>
+                        <li><strong>用户身份验证</strong> - 验证用户身份</li>
+                        <li><strong>文章存在性检查</strong> - 确认文章存在</li>
+                    </ul>
+                </div>
+
+                <div class="info-section">
+                    <h3>事件数据字段说明</h3>
+                    
+                    <h4>通用字段</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>event</strong></td>
+                            <td>事件类型标识符</td>
+                        </tr>
+                        <tr>
+                            <td><strong>target</strong></td>
+                            <td>目标受众房间</td>
+                        </tr>
+                        <tr>
+                            <td><strong>data</strong></td>
+                            <td>事件相关数据</td>
+                        </tr>
+                    </table>
+
+                    <h4>文章相关字段</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>postId</strong></td>
+                            <td>文章 ID</td>
+                        </tr>
+                        <tr>
+                            <td><strong>postType</strong></td>
+                            <td>文章类型</td>
+                        </tr>
+                        <tr>
+                            <td><strong>status</strong></td>
+                            <td>文章状态</td>
+                        </tr>
+                        <tr>
+                            <td><strong>shortUuid</strong></td>
+                            <td>文章短 UUID（用于前端路由）</td>
+                        </tr>
+                        <tr>
+                            <td><strong>slug</strong></td>
+                            <td>文章别名</td>
+                        </tr>
+                        <tr>
+                            <td><strong>title</strong></td>
+                            <td>文章标题</td>
+                        </tr>
+                        <tr>
+                            <td><strong>excerpt</strong></td>
+                            <td>文章摘要</td>
+                        </tr>
+                    </table>
+
+                    <h4>分类法相关字段</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>termId</strong></td>
+                            <td>分类法条目 ID</td>
+                        </tr>
+                        <tr>
+                            <td><strong>taxonomy</strong></td>
+                            <td>分类法名称</td>
+                        </tr>
+                        <tr>
+                            <td><strong>slug</strong></td>
+                            <td>条目别名</td>
+                        </tr>
+                        <tr>
+                            <td><strong>name</strong></td>
+                            <td>条目名称</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="info-section">
+                    <h3>事件处理流程</h3>
+                    
+                    <div class="architecture-diagram">
+                        <div class="arch-component">
+                            <h4>WordPress 事件</h4>
+                            <p>save_post, created_tag 等</p>
+                        </div>
+                        <div class="arch-arrow">→</div>
+                        <div class="arch-component">
+                            <h4>事件处理器</h4>
+                            <p>验证和过滤</p>
+                        </div>
+                        <div class="arch-arrow">→</div>
+                        <div class="arch-component">
+                            <h4>数据构建</h4>
+                            <p>构建事件数据</p>
+                        </div>
+                        <div class="arch-arrow">→</div>
+                        <div class="arch-component">
+                            <h4>WebSocket 推送</h4>
+                            <p>发送到前端</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="warning-box">
+                    <h4>⚠️ 注意事项</h4>
+                    <ul>
+                        <li>所有 WebSocket 推送都是非阻塞的，不会影响 WordPress 后台性能</li>
+                        <li>事件数据会根据用户权限进行过滤，确保安全性</li>
+                        <li>大量操作时可能产生大量事件，建议监控 WebSocket 服务器性能</li>
+                        <li>事件推送失败不会影响 WordPress 正常功能</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 FD WebSocket Push Plugin. 保留所有权利。</p>
+                <p>
+                    <a href="https://github.com/your-repo/fd-websocket-push" target="_blank">GitHub</a> |
+                    <a href="mailto:support@example.com">技术支持</a> |
+                    <a href="api-reference.html">API 参考</a>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>

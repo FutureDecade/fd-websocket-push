@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>迁移指南 - FD WebSocket Push 插件文档</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🚀</span>
+                    FD WebSocket Push
+                </h1>
+                <p class="subtitle">从 fd-pusher 迁移指南</p>
+            </div>
+        </header>
+
+        <nav class="navigation">
+            <ul class="nav-list">
+                <li><a href="index.html" class="nav-link">概述</a></li>
+                <li><a href="installation.html" class="nav-link">安装配置</a></li>
+                <li><a href="api-reference.html" class="nav-link">API 参考</a></li>
+                <li><a href="events.html" class="nav-link">事件系统</a></li>
+                <li><a href="cache.html" class="nav-link">缓存管理</a></li>
+                <li><a href="migration.html" class="nav-link active">迁移指南</a></li>
+                <li><a href="troubleshooting.html" class="nav-link">故障排除</a></li>
+                <li><a href="examples.html" class="nav-link">使用示例</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <section class="content-section">
+                <h2>迁移指南</h2>
+
+                <div class="info-section">
+                    <h3>迁移概述</h3>
+                    <p>本指南将帮助您从旧的 <code>fd-pusher</code> 插件平滑迁移到新的 <code>fd-websocket-push</code> 插件。新插件在功能上完全兼容旧版本，同时提供了更好的代码结构和可维护性。</p>
+                    
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">✅</div>
+                            <h3>零功能丢失</h3>
+                            <p>所有原有功能都已完整迁移</p>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">🔧</div>
+                            <h3>零配置变更</h3>
+                            <p>使用相同的配置常量</p>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">🔄</div>
+                            <h3>向后兼容</h3>
+                            <p>提供全局函数包装器</p>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-icon">📈</div>
+                            <h3>性能提升</h3>
+                            <p>更好的代码组织和效率</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>迁移前准备</h3>
+                    
+                    <h4>1. 备份现有环境</h4>
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>备份数据库</strong>
+                            <p>虽然迁移不涉及数据库变更，但建议进行完整备份</p>
+                        </li>
+                        <li>
+                            <strong>备份插件文件</strong>
+                            <p>保留 <code>fd-pusher</code> 插件文件的副本，以备回滚使用</p>
+                        </li>
+                        <li>
+                            <strong>记录当前配置</strong>
+                            <p>记录 <code>wp-config.php</code> 中的相关常量配置</p>
+                        </li>
+                        <li>
+                            <strong>测试当前功能</strong>
+                            <p>确认旧插件的所有功能都正常工作</p>
+                        </li>
+                    </ol>
+
+                    <h4>2. 环境检查</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>WordPress 版本</strong></td>
+                            <td>确保版本 ≥ 5.0</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PHP 版本</strong></td>
+                            <td>确保版本 ≥ 7.4</td>
+                        </tr>
+                        <tr>
+                            <td><strong>必需常量</strong></td>
+                            <td>确认 FD_WEBSOCKET_PUSH_SECRET 和 REVALIDATE_SECRET 已定义</td>
+                        </tr>
+                        <tr>
+                            <td><strong>WebSocket 服务</strong></td>
+                            <td>确认 WebSocket 服务器正常运行</td>
+                        </tr>
+                        <tr>
+                            <td><strong>前端服务</strong></td>
+                            <td>确认 Next.js 前端应用正常运行</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="info-section">
+                    <h3>迁移步骤</h3>
+                    
+                    <h4>步骤 1: 停用旧插件</h4>
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>进入插件管理</strong>
+                            <p>在 WordPress 后台导航到 插件 → 已安装的插件</p>
+                        </li>
+                        <li>
+                            <strong>停用 fd-pusher</strong>
+                            <p>找到 "FD Pusher" 插件，点击"停用"</p>
+                        </li>
+                        <li>
+                            <strong>确认停用</strong>
+                            <p>检查插件状态显示为"未激活"</p>
+                        </li>
+                    </ol>
+
+                    <h4>步骤 2: 安装新插件</h4>
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>上传新插件</strong>
+                            <p>将 <code>fd-websocket-push</code> 文件夹上传到 <code>/wp-content/plugins/</code></p>
+                        </li>
+                        <li>
+                            <strong>验证文件结构</strong>
+                            <p>确认所有必需文件都已正确上传</p>
+                        </li>
+                        <li>
+                            <strong>检查权限</strong>
+                            <p>确保文件权限设置正确</p>
+                        </li>
+                    </ol>
+
+                    <h4>步骤 3: 激活新插件</h4>
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>激活插件</strong>
+                            <p>在插件列表中找到 "FD WebSocket Push"，点击"激活"</p>
+                        </li>
+                        <li>
+                            <strong>检查激活日志</strong>
+                            <p>查看错误日志确认插件成功激活</p>
+                            <pre><code>[FD WebSocket Push] FD WebSocket Push plugin activated</code></pre>
+                        </li>
+                        <li>
+                            <strong>验证配置</strong>
+                            <p>确认插件能够正确读取配置常量</p>
+                        </li>
+                    </ol>
+
+                    <h4>步骤 4: 功能验证</h4>
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>测试文章事件</strong>
+                            <p>创建、编辑、发布文章，检查 WebSocket 事件是否正常发送</p>
+                        </li>
+                        <li>
+                            <strong>测试分类法事件</strong>
+                            <p>创建、编辑标签和分类，验证相关事件</p>
+                        </li>
+                        <li>
+                            <strong>测试缓存失效</strong>
+                            <p>检查前端缓存是否正确失效</p>
+                        </li>
+                        <li>
+                            <strong>测试支付事件</strong>
+                            <p>如果使用支付功能，测试文章解锁事件</p>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="info-section">
+                    <h3>功能对比验证</h3>
+                    
+                    <h4>核心功能检查清单</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>文章更新推送</strong></td>
+                            <td>✅ 编辑文章时发送 post:updated 事件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>文章发布推送</strong></td>
+                            <td>✅ 新文章发布时发送 post:inserted 事件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>文章删除推送</strong></td>
+                            <td>✅ 删除文章时发送 post:deleted 事件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>状态变化推送</strong></td>
+                            <td>✅ 文章状态变化时发送相应事件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>标签更新推送</strong></td>
+                            <td>✅ 标签变化时发送 tag:updated 事件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>分类更新推送</strong></td>
+                            <td>✅ 分类变化时发送 category:updated 事件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>自定义分类法推送</strong></td>
+                            <td>✅ 自定义分类法变化时发送 taxonomy:updated 事件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>支付解锁推送</strong></td>
+                            <td>✅ 支付成功时发送 post:unlocked 事件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>缓存标签失效</strong></td>
+                            <td>✅ 自动失效相关的 Next.js 缓存标签</td>
+                        </tr>
+                        <tr>
+                            <td><strong>缓存路径失效</strong></td>
+                            <td>✅ 自动失效相关的页面路径缓存</td>
+                        </tr>
+                    </table>
+
+                    <h4>高级功能检查</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>ACF 字段支持</strong></td>
+                            <td>✅ 支持 ACF 字段更新事件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>权限级别推送</strong></td>
+                            <td>✅ 根据文章访问权限确定推送目标</td>
+                        </tr>
+                        <tr>
+                            <td><strong>元数据过滤</strong></td>
+                            <td>✅ 正确过滤内部和临时元数据</td>
+                        </tr>
+                        <tr>
+                            <td><strong>批量操作处理</strong></td>
+                            <td>✅ 高效处理批量内容变更</td>
+                        </tr>
+                        <tr>
+                            <td><strong>错误处理</strong></td>
+                            <td>✅ 完善的错误处理和日志记录</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="info-section">
+                    <h3>向后兼容性</h3>
+                    
+                    <h4>全局函数兼容</h4>
+                    <p>新插件提供了向后兼容的全局函数，确保任何调用旧函数的代码继续正常工作：</p>
+                    
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>fd_pusher_revalidate_tag()</strong></td>
+                            <td>✅ 自动映射到新的缓存失效方法</td>
+                        </tr>
+                        <tr>
+                            <td><strong>fd_pusher_revalidate_tag_for_term()</strong></td>
+                            <td>✅ 自动映射到新的分类法缓存失效方法</td>
+                        </tr>
+                    </table>
+
+                    <h4>配置兼容</h4>
+                    <p>新插件使用完全相同的配置常量：</p>
+                    <ul class="feature-list">
+                        <li><strong>FD_WEBSOCKET_PUSH_SECRET</strong> - WebSocket 推送密钥</li>
+                        <li><strong>REVALIDATE_SECRET</strong> - 缓存失效密钥</li>
+                    </ul>
+                </div>
+
+                <div class="info-section">
+                    <h3>迁移后清理</h3>
+                    
+                    <h4>确认迁移成功</h4>
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>运行完整测试</strong>
+                            <p>在生产环境中测试所有关键功能</p>
+                        </li>
+                        <li>
+                            <strong>监控日志</strong>
+                            <p>观察几天的运行日志，确认没有错误</p>
+                        </li>
+                        <li>
+                            <strong>性能检查</strong>
+                            <p>确认新插件没有影响网站性能</p>
+                        </li>
+                        <li>
+                            <strong>用户反馈</strong>
+                            <p>收集用户反馈，确认前端功能正常</p>
+                        </li>
+                    </ol>
+
+                    <h4>清理旧文件（可选）</h4>
+                    <div class="warning-box">
+                        <h4>⚠️ 注意</h4>
+                        <p>只有在确认新插件完全正常工作后，才考虑删除旧插件文件。建议保留备份至少一个月。</p>
+                    </div>
+                    
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>删除旧插件目录</strong>
+                            <p>删除 <code>/wp-content/plugins/fd-pusher/</code> 目录</p>
+                        </li>
+                        <li>
+                            <strong>清理数据库</strong>
+                            <p>如果有相关的选项或元数据，可以选择清理</p>
+                        </li>
+                        <li>
+                            <strong>更新文档</strong>
+                            <p>更新项目文档，反映新的插件名称和结构</p>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="info-section">
+                    <h3>回滚计划</h3>
+                    
+                    <p>如果在迁移过程中遇到问题，可以按以下步骤回滚：</p>
+                    
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>停用新插件</strong>
+                            <p>在插件管理页面停用 FD WebSocket Push</p>
+                        </li>
+                        <li>
+                            <strong>恢复旧插件</strong>
+                            <p>重新激活 fd-pusher 插件</p>
+                        </li>
+                        <li>
+                            <strong>验证功能</strong>
+                            <p>确认所有功能恢复正常</p>
+                        </li>
+                        <li>
+                            <strong>分析问题</strong>
+                            <p>检查日志，分析迁移失败的原因</p>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="warning-box">
+                    <h4>🎯 迁移成功标志</h4>
+                    <ul>
+                        <li>WordPress 后台没有错误提示</li>
+                        <li>错误日志中有成功激活的消息</li>
+                        <li>WebSocket 事件正常发送</li>
+                        <li>前端缓存正确失效</li>
+                        <li>所有原有功能都正常工作</li>
+                        <li>网站性能没有下降</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 FD WebSocket Push Plugin. 保留所有权利。</p>
+                <p>
+                    <a href="https://github.com/your-repo/fd-websocket-push" target="_blank">GitHub</a> |
+                    <a href="mailto:support@example.com">技术支持</a> |
+                    <a href="troubleshooting.html">故障排除</a>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 参考 - FD WebSocket Push 插件文档</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🚀</span>
+                    FD WebSocket Push
+                </h1>
+                <p class="subtitle">API 参考文档</p>
+            </div>
+        </header>
+
+        <nav class="navigation">
+            <ul class="nav-list">
+                <li><a href="index.html" class="nav-link">概述</a></li>
+                <li><a href="installation.html" class="nav-link">安装配置</a></li>
+                <li><a href="api-reference.html" class="nav-link active">API 参考</a></li>
+                <li><a href="events.html" class="nav-link">事件系统</a></li>
+                <li><a href="cache.html" class="nav-link">缓存管理</a></li>
+                <li><a href="migration.html" class="nav-link">迁移指南</a></li>
+                <li><a href="troubleshooting.html" class="nav-link">故障排除</a></li>
+                <li><a href="examples.html" class="nav-link">使用示例</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <section class="content-section">
+                <h2>API 参考</h2>
+
+                <div class="info-section">
+                    <h3>核心类概览</h3>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>FD_WebSocket_Push</strong></td>
+                            <td>主插件类，负责初始化和组件管理</td>
+                        </tr>
+                        <tr>
+                            <td><strong>FD_WebSocket_Push_Helper</strong></td>
+                            <td>辅助工具类，提供通用功能和验证</td>
+                        </tr>
+                        <tr>
+                            <td><strong>FD_WebSocket_Push_Cache_Invalidator</strong></td>
+                            <td>缓存失效处理类</td>
+                        </tr>
+                        <tr>
+                            <td><strong>FD_WebSocket_Push_WebSocket_Pusher</strong></td>
+                            <td>WebSocket 推送处理类</td>
+                        </tr>
+                        <tr>
+                            <td><strong>FD_WebSocket_Push_Post_Event_Handler</strong></td>
+                            <td>文章事件处理类</td>
+                        </tr>
+                        <tr>
+                            <td><strong>FD_WebSocket_Push_Taxonomy_Event_Handler</strong></td>
+                            <td>分类法事件处理类</td>
+                        </tr>
+                        <tr>
+                            <td><strong>FD_WebSocket_Push_Payment_Event_Handler</strong></td>
+                            <td>支付事件处理类</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="info-section">
+                    <h3>FD_WebSocket_Push_Helper 类</h3>
+                    
+                    <h4>静态方法</h4>
+                    
+                    <div class="api-method">
+                        <h5><code>is_websocket_push_enabled()</code></h5>
+                        <p><strong>返回:</strong> <code>bool</code> - WebSocket 推送是否已启用</p>
+                        <p><strong>描述:</strong> 检查 FD_WEBSOCKET_PUSH_SECRET 常量是否已定义且不为空</p>
+                        <pre><code>if ( FD_WebSocket_Push_Helper::is_websocket_push_enabled() ) {
+    // WebSocket 推送已启用
+}</code></pre>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>is_revalidation_enabled()</code></h5>
+                        <p><strong>返回:</strong> <code>bool</code> - 缓存失效是否已启用</p>
+                        <p><strong>描述:</strong> 检查 REVALIDATE_SECRET 常量是否已定义且不为空</p>
+                        <pre><code>if ( FD_WebSocket_Push_Helper::is_revalidation_enabled() ) {
+    // 缓存失效已启用
+}</code></pre>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>get_websocket_push_secret()</code></h5>
+                        <p><strong>返回:</strong> <code>string|null</code> - WebSocket 推送密钥</p>
+                        <p><strong>描述:</strong> 获取 WebSocket 推送密钥，如果未定义则返回 null</p>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>get_revalidation_secret()</code></h5>
+                        <p><strong>返回:</strong> <code>string|null</code> - 缓存失效密钥</p>
+                        <p><strong>描述:</strong> 获取缓存失效密钥，如果未定义则返回 null</p>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>is_public_post_type( $post_type )</code></h5>
+                        <p><strong>参数:</strong> <code>string $post_type</code> - 文章类型名称</p>
+                        <p><strong>返回:</strong> <code>bool</code> - 文章类型是否为公开类型</p>
+                        <p><strong>描述:</strong> 检查指定的文章类型是否为公开类型</p>
+                        <pre><code>if ( FD_WebSocket_Push_Helper::is_public_post_type( 'post' ) ) {
+    // 'post' 是公开文章类型
+}</code></pre>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>is_public_taxonomy( $taxonomy )</code></h5>
+                        <p><strong>参数:</strong> <code>string $taxonomy</code> - 分类法名称</p>
+                        <p><strong>返回:</strong> <code>bool</code> - 分类法是否为公开类型</p>
+                        <p><strong>描述:</strong> 检查指定的分类法是否为公开类型</p>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>get_post_access_level( $post_id, $post )</code></h5>
+                        <p><strong>参数:</strong></p>
+                        <ul>
+                            <li><code>int $post_id</code> - 文章 ID</li>
+                            <li><code>WP_Post $post</code> - 文章对象</li>
+                        </ul>
+                        <p><strong>返回:</strong> <code>string</code> - 访问级别 ('public', 'authenticated_users', 'level_X')</p>
+                        <p><strong>描述:</strong> 根据文章的访问权限设置确定 WebSocket 推送的目标房间</p>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>should_ignore_meta_key( $meta_key )</code></h5>
+                        <p><strong>参数:</strong> <code>string $meta_key</code> - 元数据键名</p>
+                        <p><strong>返回:</strong> <code>bool</code> - 是否应该忽略此元数据键</p>
+                        <p><strong>描述:</strong> 检查元数据键是否应该被忽略（如内部字段、临时数据等）</p>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>log( $message, $level = 'DEBUG' )</code></h5>
+                        <p><strong>参数:</strong></p>
+                        <ul>
+                            <li><code>string $message</code> - 日志消息</li>
+                            <li><code>string $level</code> - 日志级别（可选，默认 'DEBUG'）</li>
+                        </ul>
+                        <p><strong>描述:</strong> 记录带有插件前缀的日志消息</p>
+                        <pre><code>FD_WebSocket_Push_Helper::log( 'Custom message', 'INFO' );
+// 输出: [FD WebSocket Push INFO] Custom message</code></pre>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>FD_WebSocket_Push_Cache_Invalidator 类</h3>
+                    
+                    <div class="api-method">
+                        <h5><code>get_instance()</code></h5>
+                        <p><strong>返回:</strong> <code>FD_WebSocket_Push_Cache_Invalidator</code> - 单例实例</p>
+                        <p><strong>描述:</strong> 获取缓存失效处理器的单例实例</p>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>revalidate_tag( $tag )</code></h5>
+                        <p><strong>参数:</strong> <code>string $tag</code> - 缓存标签</p>
+                        <p><strong>描述:</strong> 向 Next.js 发送标签缓存失效请求</p>
+                        <pre><code>$cache_invalidator = FD_WebSocket_Push_Cache_Invalidator::get_instance();
+$cache_invalidator->revalidate_tag( 'homepage-posts' );</code></pre>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>revalidate_path( $path )</code></h5>
+                        <p><strong>参数:</strong> <code>string $path</code> - 路径</p>
+                        <p><strong>描述:</strong> 向 Next.js 发送路径缓存失效请求</p>
+                        <pre><code>$cache_invalidator->revalidate_path( '/category/technology' );</code></pre>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>revalidate_term_caches( $term )</code></h5>
+                        <p><strong>参数:</strong> <code>WP_Term $term</code> - 分类法条目对象</p>
+                        <p><strong>描述:</strong> 失效指定分类法条目的所有相关缓存</p>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>invalidate_post_caches( $post_id, $post )</code></h5>
+                        <p><strong>参数:</strong></p>
+                        <ul>
+                            <li><code>int $post_id</code> - 文章 ID</li>
+                            <li><code>WP_Post $post</code> - 文章对象</li>
+                        </ul>
+                        <p><strong>描述:</strong> 失效文章相关的缓存</p>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>FD_WebSocket_Push_WebSocket_Pusher 类</h3>
+                    
+                    <div class="api-method">
+                        <h5><code>get_instance()</code></h5>
+                        <p><strong>返回:</strong> <code>FD_WebSocket_Push_WebSocket_Pusher</code> - 单例实例</p>
+                        <p><strong>描述:</strong> 获取 WebSocket 推送器的单例实例</p>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>send_event( $event_type, $target, $data = [] )</code></h5>
+                        <p><strong>参数:</strong></p>
+                        <ul>
+                            <li><code>string $event_type</code> - 事件类型</li>
+                            <li><code>string $target</code> - 目标房间</li>
+                            <li><code>array $data</code> - 事件数据（可选）</li>
+                        </ul>
+                        <p><strong>返回:</strong> <code>bool|WP_Error</code> - 发送结果</p>
+                        <p><strong>描述:</strong> 向 WebSocket 服务器发送事件</p>
+                        <pre><code>$pusher = FD_WebSocket_Push_WebSocket_Pusher::get_instance();
+$result = $pusher->send_event( 'custom:event', 'public', [
+    'message' => 'Hello World'
+] );</code></pre>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>send_post_updated_event( $post_id, $post )</code></h5>
+                        <p><strong>参数:</strong></p>
+                        <ul>
+                            <li><code>int $post_id</code> - 文章 ID</li>
+                            <li><code>WP_Post $post</code> - 文章对象</li>
+                        </ul>
+                        <p><strong>描述:</strong> 发送文章更新事件</p>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>send_taxonomy_updated_event( $event_type, $term_id, $taxonomy )</code></h5>
+                        <p><strong>参数:</strong></p>
+                        <ul>
+                            <li><code>string $event_type</code> - 事件类型</li>
+                            <li><code>int $term_id</code> - 分类法条目 ID</li>
+                            <li><code>string $taxonomy</code> - 分类法名称</li>
+                        </ul>
+                        <p><strong>描述:</strong> 发送分类法更新事件</p>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>向后兼容函数</h3>
+                    
+                    <p>为了保持与旧版本的兼容性，插件提供了以下全局函数：</p>
+                    
+                    <div class="api-method">
+                        <h5><code>fd_pusher_revalidate_tag( $tag )</code></h5>
+                        <p><strong>参数:</strong> <code>string $tag</code> - 缓存标签</p>
+                        <p><strong>描述:</strong> 向后兼容的缓存标签失效函数</p>
+                        <pre><code>// 旧版本兼容调用
+fd_pusher_revalidate_tag( 'homepage-posts' );</code></pre>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>fd_pusher_revalidate_tag_for_term( $term )</code></h5>
+                        <p><strong>参数:</strong> <code>WP_Term $term</code> - 分类法条目对象</p>
+                        <p><strong>描述:</strong> 向后兼容的分类法条目缓存失效函数</p>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>WordPress 钩子和过滤器</h3>
+                    
+                    <h4>动作钩子 (Actions)</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>save_post</strong></td>
+                            <td>文章保存时触发</td>
+                        </tr>
+                        <tr>
+                            <td><strong>wp_insert_post</strong></td>
+                            <td>文章插入时触发</td>
+                        </tr>
+                        <tr>
+                            <td><strong>before_delete_post</strong></td>
+                            <td>文章删除前触发</td>
+                        </tr>
+                        <tr>
+                            <td><strong>transition_post_status</strong></td>
+                            <td>文章状态变化时触发</td>
+                        </tr>
+                        <tr>
+                            <td><strong>created_post_tag</strong></td>
+                            <td>标签创建时触发</td>
+                        </tr>
+                        <tr>
+                            <td><strong>edited_post_tag</strong></td>
+                            <td>标签编辑时触发</td>
+                        </tr>
+                        <tr>
+                            <td><strong>fd_payment_success</strong></td>
+                            <td>支付成功时触发</td>
+                        </tr>
+                    </table>
+
+                    <h4>过滤器钩子 (Filters)</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>set_object_terms</strong></td>
+                            <td>文章分类法关联变化时触发</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="info-section">
+                    <h3>自定义过滤器</h3>
+                    
+                    <p>插件提供了以下自定义过滤器供开发者使用：</p>
+                    
+                    <div class="api-method">
+                        <h5><code>fd_websocket_push_server_url</code></h5>
+                        <p><strong>描述:</strong> 自定义 WebSocket 服务器 URL</p>
+                        <pre><code>add_filter( 'fd_websocket_push_server_url', function( $url ) {
+    return 'http://custom-websocket-server:8080/push-event';
+} );</code></pre>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>fd_websocket_push_frontend_url</code></h5>
+                        <p><strong>描述:</strong> 自定义前端服务器 URL</p>
+                        <pre><code>add_filter( 'fd_websocket_push_frontend_url', function( $url ) {
+    return 'http://custom-frontend-server:3000';
+} );</code></pre>
+                    </div>
+
+                    <div class="api-method">
+                        <h5><code>fd_websocket_push_enable_post_events</code></h5>
+                        <p><strong>描述:</strong> 启用/禁用文章事件</p>
+                        <pre><code>// 禁用文章事件
+add_filter( 'fd_websocket_push_enable_post_events', '__return_false' );</code></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 FD WebSocket Push Plugin. 保留所有权利。</p>
+                <p>
+                    <a href="https://github.com/your-repo/fd-websocket-push" target="_blank">GitHub</a> |
+                    <a href="mailto:support@example.com">技术支持</a> |
+                    <a href="examples.html">使用示例</a>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>

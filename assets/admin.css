@@ -1,0 +1,250 @@
+/* WebSocket推送事件管理页面样式 */
+
+.fd-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.fd-stat-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.fd-stat-card h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.fd-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.fd-stats-table th,
+.fd-stats-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.fd-stats-table th {
+    background: #f9f9f9;
+    font-weight: 600;
+}
+
+.fd-stat-success {
+    color: #46b450;
+    font-weight: 600;
+}
+
+.fd-stat-error {
+    color: #dc3232;
+    font-weight: 600;
+}
+
+.fd-stat-pending {
+    color: #ffb900;
+    font-weight: 600;
+}
+
+.fd-filters {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.fd-filters form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.fd-filters select {
+    min-width: 150px;
+}
+
+.fd-events-table {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+.fd-status {
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.fd-status-pending {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.fd-status-sent {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.fd-status-failed {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.fd-modal {
+    position: fixed;
+    z-index: 100000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.fd-modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 0;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.fd-modal-header {
+    padding: 20px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #e1e1e1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fd-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.fd-modal-close {
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #666;
+}
+
+.fd-modal-close:hover {
+    color: #000;
+}
+
+.fd-modal-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.fd-event-detail {
+    margin-bottom: 20px;
+}
+
+.fd-event-detail h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.fd-event-detail pre {
+    background: #f9f9f9;
+    border: 1px solid #e1e1e1;
+    border-radius: 3px;
+    padding: 15px;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.fd-event-detail .fd-json {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.button-small {
+    padding: 2px 8px;
+    font-size: 11px;
+    line-height: 1.4;
+    height: auto;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .fd-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .fd-filters form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .fd-filters select {
+        min-width: auto;
+        margin-bottom: 10px;
+    }
+    
+    .fd-modal-content {
+        width: 95%;
+        margin: 2% auto;
+    }
+}
+
+/* 加载动画 */
+.fd-loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: fd-spin 1s linear infinite;
+}
+
+@keyframes fd-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 表格响应式 */
+@media (max-width: 768px) {
+    .wp-list-table {
+        font-size: 12px;
+    }
+    
+    .wp-list-table th,
+    .wp-list-table td {
+        padding: 5px;
+    }
+    
+    .button-small {
+        padding: 1px 4px;
+        font-size: 10px;
+    }
+}

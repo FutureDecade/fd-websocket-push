@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FD WebSocket Push 插件文档</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🚀</span>
+                    FD WebSocket Push
+                </h1>
+                <p class="subtitle">WordPress 实时推送通知插件</p>
+            </div>
+        </header>
+
+        <nav class="navigation">
+            <ul class="nav-list">
+                <li><a href="#overview" class="nav-link active">概述</a></li>
+                <li><a href="installation.html" class="nav-link">安装配置</a></li>
+                <li><a href="api-reference.html" class="nav-link">API 参考</a></li>
+                <li><a href="events.html" class="nav-link">事件系统</a></li>
+                <li><a href="cache.html" class="nav-link">缓存管理</a></li>
+                <li><a href="migration.html" class="nav-link">迁移指南</a></li>
+                <li><a href="troubleshooting.html" class="nav-link">故障排除</a></li>
+                <li><a href="examples.html" class="nav-link">使用示例</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <section id="overview" class="content-section">
+                <h2>插件概述</h2>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>实时推送</h3>
+                        <p>当 WordPress 事件发生时，立即向 WebSocket 服务器发送实时通知</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🔄</div>
+                        <h3>缓存管理</h3>
+                        <p>自动失效 Next.js 缓存，确保前端内容始终保持最新</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>精准推送</h3>
+                        <p>基于用户权限和内容访问级别的精准推送通知</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🧩</div>
+                        <h3>模块化设计</h3>
+                        <p>清晰的代码结构，易于维护和扩展</p>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>主要功能</h3>
+                    <ul class="feature-list">
+                        <li><strong>文章生命周期事件</strong> - 文章创建、更新、删除、状态变化</li>
+                        <li><strong>分类法事件</strong> - 标签、分类、自定义分类法的增删改</li>
+                        <li><strong>元数据更新</strong> - 支持 ACF 字段和自定义字段</li>
+                        <li><strong>支付解锁事件</strong> - 文章付费解锁成功通知</li>
+                        <li><strong>列表更新通知</strong> - 文章列表页面实时更新</li>
+                        <li><strong>缓存自动失效</strong> - Next.js 缓存标签和路径失效</li>
+                    </ul>
+                </div>
+
+                <div class="info-section">
+                    <h3>技术特性</h3>
+                    <ul class="feature-list">
+                        <li><strong>单例模式</strong> - 确保资源效率和一致性</li>
+                        <li><strong>职责分离</strong> - 每个类专注于特定功能领域</li>
+                        <li><strong>向后兼容</strong> - 完全兼容旧版本 API</li>
+                        <li><strong>错误处理</strong> - 完善的错误处理和日志记录</li>
+                        <li><strong>非阻塞请求</strong> - 不影响 WordPress 后台性能</li>
+                        <li><strong>ACF 支持</strong> - 完整支持 Advanced Custom Fields 插件</li>
+                    </ul>
+                </div>
+
+                <div class="version-info">
+                    <h3>版本信息</h3>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>当前版本</strong></td>
+                            <td>1.0.0</td>
+                        </tr>
+                        <tr>
+                            <td><strong>WordPress 要求</strong></td>
+                            <td>5.0+</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PHP 要求</strong></td>
+                            <td>7.4+</td>
+                        </tr>
+                        <tr>
+                            <td><strong>许可证</strong></td>
+                            <td>GPL v2 或更高版本</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="quick-start">
+                    <h3>快速开始</h3>
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>安装插件</strong>
+                            <p>将插件文件上传到 <code>/wp-content/plugins/fd-websocket-push/</code> 目录</p>
+                        </li>
+                        <li>
+                            <strong>配置常量</strong>
+                            <p>在 <code>wp-config.php</code> 中添加必要的常量定义</p>
+                        </li>
+                        <li>
+                            <strong>激活插件</strong>
+                            <p>在 WordPress 后台激活 FD WebSocket Push 插件</p>
+                        </li>
+                        <li>
+                            <strong>验证功能</strong>
+                            <p>检查日志确认插件正常工作</p>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="architecture-overview">
+                    <h3>架构概览</h3>
+                    <div class="architecture-diagram">
+                        <div class="arch-component">
+                            <h4>主插件文件</h4>
+                            <p>fd-websocket-push.php</p>
+                        </div>
+                        <div class="arch-arrow">→</div>
+                        <div class="arch-component">
+                            <h4>事件处理器</h4>
+                            <p>Post, Taxonomy, Payment</p>
+                        </div>
+                        <div class="arch-arrow">→</div>
+                        <div class="arch-component">
+                            <h4>推送服务</h4>
+                            <p>WebSocket, Cache</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 FD WebSocket Push Plugin. 保留所有权利。</p>
+                <p>
+                    <a href="https://github.com/your-repo/fd-websocket-push" target="_blank">GitHub</a> |
+                    <a href="mailto:support@example.com">技术支持</a> |
+                    <a href="changelog.html">更新日志</a>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>

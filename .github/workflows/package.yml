@@ -1,0 +1,86 @@
+name: Package Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      trigger_test_server_update:
+        description: Trigger fd-headless-wp-system deploy after packaging
+        required: true
+        default: "false"
+      release_tag_for_test_server:
+        description: Existing release tag to deploy to test server
+        required: false
+  push:
+    branches:
+      - main
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build WordPress Package
+    runs-on: ubuntu-latest
+    env:
+      PACKAGE_SLUG: fd-websocket-push
+      PACKAGE_FILE: fd-websocket-push.zip
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build distributable zip
+        run: |
+          rm -rf dist
+          mkdir -p "dist/${PACKAGE_SLUG}"
+          rsync -a ./ "dist/${PACKAGE_SLUG}/" \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '.DS_Store' \
+            --exclude '.idea/' \
+            --exclude '.vscode/' \
+            --exclude 'dist/' \
+            --exclude '*.zip'
+          cd dist
+          zip -r "${PACKAGE_FILE}" "${PACKAGE_SLUG}"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PACKAGE_SLUG }}-zip
+          path: dist/${{ env.PACKAGE_FILE }}
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "dist/${PACKAGE_FILE}" --repo "${GITHUB_REPOSITORY}" --clobber
+
+      - name: Trigger test server update
+        if: >
+          github.event_name == 'release' ||
+          (
+            github.event_name == 'workflow_dispatch' &&
+            inputs.trigger_test_server_update == 'true'
+          )
+        env:
+          GH_TOKEN: ${{ secrets.FD_SYSTEM_TRIGGER_TOKEN }}
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.release_tag_for_test_server }}
+        run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "Missing secret: FD_SYSTEM_TRIGGER_TOKEN"
+            echo "Skip automatic test server update."
+            exit 0
+          fi
+
+          if [ -z "${RELEASE_TAG}" ]; then
+            echo "Missing release tag for test server update"
+            exit 1
+          fi
+
+          gh workflow run "Deploy Test Server" \
+            -R FutureDecade/fd-headless-wp-system \
+            --ref main \
+            -f force_wordpress_asset_fetch=false \
+            -f fd_websocket_push_release_tag="${RELEASE_TAG}"

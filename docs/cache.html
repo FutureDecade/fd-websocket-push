@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>缓存管理 - FD WebSocket Push 插件文档</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🚀</span>
+                    FD WebSocket Push
+                </h1>
+                <p class="subtitle">缓存管理系统</p>
+            </div>
+        </header>
+
+        <nav class="navigation">
+            <ul class="nav-list">
+                <li><a href="index.html" class="nav-link">概述</a></li>
+                <li><a href="installation.html" class="nav-link">安装配置</a></li>
+                <li><a href="api-reference.html" class="nav-link">API 参考</a></li>
+                <li><a href="events.html" class="nav-link">事件系统</a></li>
+                <li><a href="cache.html" class="nav-link active">缓存管理</a></li>
+                <li><a href="migration.html" class="nav-link">迁移指南</a></li>
+                <li><a href="troubleshooting.html" class="nav-link">故障排除</a></li>
+                <li><a href="examples.html" class="nav-link">使用示例</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <section class="content-section">
+                <h2>缓存管理</h2>
+
+                <div class="info-section">
+                    <h3>缓存系统概述</h3>
+                    <p>FD WebSocket Push 插件的缓存管理系统负责在 WordPress 内容发生变化时，自动失效 Next.js 前端应用的相关缓存。这确保了前端始终显示最新的内容，同时保持了缓存带来的性能优势。</p>
+                </div>
+
+                <div class="info-section">
+                    <h3>缓存失效机制</h3>
+                    
+                    <h4>标签缓存失效 (Tag-based Revalidation)</h4>
+                    <p>使用 Next.js 的标签缓存系统，通过特定的标签来标识和失效相关的缓存内容。</p>
+                    
+                    <div class="api-method">
+                        <h5>API 端点</h5>
+                        <pre><code>POST http://frontend:3000/api/revalidate
+Headers:
+  x-revalidate-secret: YOUR_REVALIDATE_SECRET
+Body: cache_tag_name</code></pre>
+                    </div>
+
+                    <h4>路径缓存失效 (Path-based Revalidation)</h4>
+                    <p>直接失效特定路径的缓存，适用于需要立即更新的页面。</p>
+                    
+                    <div class="api-method">
+                        <h5>API 端点</h5>
+                        <pre><code>POST http://frontend:3000/api/revalidate-path
+Headers:
+  x-revalidate-secret: YOUR_REVALIDATE_SECRET
+Body: /path/to/page</code></pre>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>缓存标签分类</h3>
+                    
+                    <h4>文章相关缓存标签</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>post:{shortUuid}</strong></td>
+                            <td>特定文章的详情页缓存</td>
+                        </tr>
+                        <tr>
+                            <td><strong>page:{slug}</strong></td>
+                            <td>特定页面的缓存</td>
+                        </tr>
+                        <tr>
+                            <td><strong>homepage-posts</strong></td>
+                            <td>首页文章列表缓存</td>
+                        </tr>
+                        <tr>
+                            <td><strong>post-type:{post_type}</strong></td>
+                            <td>特定文章类型的列表页缓存</td>
+                        </tr>
+                    </table>
+
+                    <h4>分类法相关缓存标签</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>category:{slug}</strong></td>
+                            <td>特定分类的页面缓存</td>
+                        </tr>
+                        <tr>
+                            <td><strong>category-index-page</strong></td>
+                            <td>分类索引页缓存</td>
+                        </tr>
+                        <tr>
+                            <td><strong>tag:{slug}</strong></td>
+                            <td>特定标签的页面缓存</td>
+                        </tr>
+                        <tr>
+                            <td><strong>tag-index-page</strong></td>
+                            <td>标签索引页缓存</td>
+                        </tr>
+                        <tr>
+                            <td><strong>taxonomy:{taxonomy}</strong></td>
+                            <td>自定义分类法索引页缓存</td>
+                        </tr>
+                        <tr>
+                            <td><strong>taxonomy-term:{taxonomy}:{slug}</strong></td>
+                            <td>自定义分类法条目页缓存</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="info-section">
+                    <h3>缓存失效触发场景</h3>
+                    
+                    <h4>文章操作触发的缓存失效</h4>
+                    
+                    <div class="cache-scenario">
+                        <h5>文章更新</h5>
+                        <p><strong>触发条件:</strong> 文章内容、标题、状态等发生变化</p>
+                        <p><strong>失效缓存:</strong></p>
+                        <ul>
+                            <li>文章详情页: <code>post:{shortUuid}</code></li>
+                            <li>首页列表: <code>homepage-posts</code></li>
+                            <li>相关分类页: <code>category:{slug}</code></li>
+                            <li>相关标签页: <code>tag:{slug}</code></li>
+                            <li>自定义分类法页: <code>taxonomy-term:{taxonomy}:{slug}</code></li>
+                        </ul>
+                    </div>
+
+                    <div class="cache-scenario">
+                        <h5>文章发布</h5>
+                        <p><strong>触发条件:</strong> 新文章发布或草稿变为发布状态</p>
+                        <p><strong>失效缓存:</strong></p>
+                        <ul>
+                            <li>首页列表: <code>homepage-posts</code></li>
+                            <li>文章类型列表: <code>post-type:{post_type}</code></li>
+                            <li>所有相关分类法页面</li>
+                        </ul>
+                    </div>
+
+                    <div class="cache-scenario">
+                        <h5>文章删除</h5>
+                        <p><strong>触发条件:</strong> 已发布文章被删除</p>
+                        <p><strong>失效缓存:</strong></p>
+                        <ul>
+                            <li>首页列表: <code>homepage-posts</code></li>
+                            <li>所有相关分类法页面</li>
+                            <li>文章类型列表页</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>分类法操作触发的缓存失效</h3>
+                    
+                    <div class="cache-scenario">
+                        <h5>标签更新</h5>
+                        <p><strong>触发条件:</strong> 标签被创建、编辑、删除或元数据更新</p>
+                        <p><strong>失效缓存:</strong></p>
+                        <ul>
+                            <li>标签索引页: <code>tag-index-page</code></li>
+                            <li>特定标签页: <code>tag:{slug}</code></li>
+                            <li>标签页路径: <code>/tag/{slug}</code></li>
+                        </ul>
+                    </div>
+
+                    <div class="cache-scenario">
+                        <h5>分类更新</h5>
+                        <p><strong>触发条件:</strong> 分类被创建、编辑、删除或元数据更新</p>
+                        <p><strong>失效缓存:</strong></p>
+                        <ul>
+                            <li>分类索引页: <code>category-index-page</code></li>
+                            <li>特定分类页: <code>category:{slug}</code></li>
+                            <li>分类页路径: <code>/category/{slug}</code></li>
+                        </ul>
+                    </div>
+
+                    <div class="cache-scenario">
+                        <h5>自定义分类法更新</h5>
+                        <p><strong>触发条件:</strong> 自定义分类法条目被创建、编辑、删除</p>
+                        <p><strong>失效缓存:</strong></p>
+                        <ul>
+                            <li>分类法索引页: <code>taxonomy:{taxonomy}</code></li>
+                            <li>特定条目页: <code>taxonomy-term:{taxonomy}:{slug}</code></li>
+                            <li>分类法路径: <code>/taxonomy/{taxonomy}</code></li>
+                            <li>条目路径: <code>/taxonomy/{taxonomy}/{slug}</code></li>
+                        </ul>
+                    </div>
+
+                    <div class="cache-scenario">
+                        <h5>文章分类法关联变化</h5>
+                        <p><strong>触发条件:</strong> 文章的标签、分类等关联发生变化</p>
+                        <p><strong>失效缓存:</strong></p>
+                        <ul>
+                            <li>所有受影响的分类法页面</li>
+                            <li>相关的索引页面</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>缓存失效策略</h3>
+                    
+                    <h4>智能失效</h4>
+                    <ul class="feature-list">
+                        <li><strong>关联分析</strong> - 自动分析内容变化影响的所有相关页面</li>
+                        <li><strong>批量处理</strong> - 将相关的缓存失效操作批量执行</li>
+                        <li><strong>去重优化</strong> - 避免重复失效相同的缓存标签</li>
+                        <li><strong>优先级处理</strong> - 优先处理用户可见度高的页面缓存</li>
+                    </ul>
+
+                    <h4>性能优化</h4>
+                    <ul class="feature-list">
+                        <li><strong>非阻塞请求</strong> - 缓存失效请求不阻塞 WordPress 操作</li>
+                        <li><strong>错误容忍</strong> - 缓存失效失败不影响 WordPress 正常功能</li>
+                        <li><strong>超时控制</strong> - 设置合理的请求超时时间</li>
+                        <li><strong>重试机制</strong> - 对失败的请求进行适当重试</li>
+                    </ul>
+                </div>
+
+                <div class="info-section">
+                    <h3>配置和自定义</h3>
+                    
+                    <h4>自定义前端服务器地址</h4>
+                    <pre><code>// 在主题的 functions.php 中添加
+add_filter( 'fd_websocket_push_frontend_url', function( $url ) {
+    return 'http://your-frontend-server:3000';
+} );</code></pre>
+
+                    <h4>自定义缓存标签</h4>
+                    <pre><code>// 添加自定义缓存标签失效
+add_action( 'your_custom_event', function() {
+    $cache_invalidator = FD_WebSocket_Push_Cache_Invalidator::get_instance();
+    $cache_invalidator->revalidate_tag( 'custom-cache-tag' );
+} );</code></pre>
+
+                    <h4>禁用特定缓存失效</h4>
+                    <pre><code>// 禁用文章相关的缓存失效
+add_filter( 'fd_websocket_push_enable_post_cache_invalidation', '__return_false' );
+
+// 禁用分类法相关的缓存失效
+add_filter( 'fd_websocket_push_enable_taxonomy_cache_invalidation', '__return_false' );</code></pre>
+                </div>
+
+                <div class="info-section">
+                    <h3>监控和调试</h3>
+                    
+                    <h4>日志记录</h4>
+                    <p>插件会记录所有缓存失效操作的详细日志：</p>
+                    <pre><code># 成功的缓存失效日志
+[FD WebSocket Push] Revalidate tag queued: homepage-posts
+[FD WebSocket Push] Revalidate path queued: /category/technology
+
+# 错误日志
+[FD WebSocket Push ERROR] REVALIDATE_SECRET is not defined. Cannot revalidate tag: homepage-posts</code></pre>
+
+                    <h4>调试模式</h4>
+                    <p>启用 WordPress 调试模式以获取更详细的日志信息：</p>
+                    <pre><code>// 在 wp-config.php 中添加
+define( 'WP_DEBUG', true );
+define( 'WP_DEBUG_LOG', true );</code></pre>
+                </div>
+
+                <div class="warning-box">
+                    <h4>🔧 最佳实践</h4>
+                    <ul>
+                        <li>确保 REVALIDATE_SECRET 与前端应用配置一致</li>
+                        <li>监控前端应用的缓存失效 API 响应时间</li>
+                        <li>定期检查 WordPress 错误日志中的缓存失效相关消息</li>
+                        <li>在高流量网站上考虑使用队列系统处理缓存失效</li>
+                        <li>测试环境中验证缓存失效是否按预期工作</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 FD WebSocket Push Plugin. 保留所有权利。</p>
+                <p>
+                    <a href="https://github.com/your-repo/fd-websocket-push" target="_blank">GitHub</a> |
+                    <a href="mailto:support@example.com">技术支持</a> |
+                    <a href="troubleshooting.html">故障排除</a>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>故障排除 - FD WebSocket Push 插件文档</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🚀</span>
+                    FD WebSocket Push
+                </h1>
+                <p class="subtitle">故障排除指南</p>
+            </div>
+        </header>
+
+        <nav class="navigation">
+            <ul class="nav-list">
+                <li><a href="index.html" class="nav-link">概述</a></li>
+                <li><a href="installation.html" class="nav-link">安装配置</a></li>
+                <li><a href="api-reference.html" class="nav-link">API 参考</a></li>
+                <li><a href="events.html" class="nav-link">事件系统</a></li>
+                <li><a href="cache.html" class="nav-link">缓存管理</a></li>
+                <li><a href="migration.html" class="nav-link">迁移指南</a></li>
+                <li><a href="troubleshooting.html" class="nav-link active">故障排除</a></li>
+                <li><a href="examples.html" class="nav-link">使用示例</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <section class="content-section">
+                <h2>故障排除</h2>
+
+                <div class="info-section">
+                    <h3>常见问题诊断</h3>
+                    
+                    <h4>快速诊断检查清单</h4>
+                    <ol class="quick-start-list">
+                        <li>
+                            <strong>检查插件状态</strong>
+                            <p>确认插件已激活且没有错误提示</p>
+                        </li>
+                        <li>
+                            <strong>验证配置常量</strong>
+                            <p>确认 FD_WEBSOCKET_PUSH_SECRET 和 REVALIDATE_SECRET 已正确定义</p>
+                        </li>
+                        <li>
+                            <strong>检查错误日志</strong>
+                            <p>查看 WordPress 错误日志中的相关消息</p>
+                        </li>
+                        <li>
+                            <strong>测试网络连接</strong>
+                            <p>确认 WordPress 能够访问 WebSocket 服务器和前端服务器</p>
+                        </li>
+                        <li>
+                            <strong>验证服务状态</strong>
+                            <p>确认 WebSocket 服务器和 Next.js 前端正常运行</p>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="info-section">
+                    <h3>配置相关问题</h3>
+                    
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：插件激活后没有任何反应</h4>
+                        <p><strong>可能原因：</strong></p>
+                        <ul>
+                            <li>配置常量未定义或定义错误</li>
+                            <li>PHP 版本不兼容</li>
+                            <li>文件权限问题</li>
+                        </ul>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>检查 <code>wp-config.php</code> 中的常量定义：
+                                <pre><code>define( 'FD_WEBSOCKET_PUSH_SECRET', 'your-secret-key' );
+define( 'REVALIDATE_SECRET', 'your-revalidate-key' );</code></pre>
+                            </li>
+                            <li>确认 PHP 版本 ≥ 7.4</li>
+                            <li>检查插件文件权限（建议 644 for files, 755 for directories）</li>
+                            <li>查看 WordPress 错误日志获取详细信息</li>
+                        </ol>
+                    </div>
+
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：错误日志显示 "SECRET not defined"</h4>
+                        <p><strong>错误消息示例：</strong></p>
+                        <pre><code>[FD WebSocket Push ERROR] FD_WEBSOCKET_PUSH_SECRET not defined
+[FD WebSocket Push ERROR] REVALIDATE_SECRET not defined</code></pre>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>在 <code>wp-config.php</code> 中添加缺失的常量</li>
+                            <li>确保常量定义在 <code>require_once(ABSPATH . 'wp-settings.php');</code> 之前</li>
+                            <li>检查常量值不为空</li>
+                            <li>重新激活插件</li>
+                        </ol>
+                    </div>
+
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：插件激活失败</h4>
+                        <p><strong>可能原因：</strong></p>
+                        <ul>
+                            <li>PHP 语法错误</li>
+                            <li>内存不足</li>
+                            <li>文件缺失或损坏</li>
+                        </ul>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>检查 PHP 错误日志</li>
+                            <li>增加 PHP 内存限制：<code>ini_set('memory_limit', '256M');</code></li>
+                            <li>重新上传插件文件</li>
+                            <li>检查文件完整性</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>WebSocket 推送问题</h3>
+                    
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：WebSocket 事件没有发送</h4>
+                        <p><strong>诊断步骤：</strong></p>
+                        <ol>
+                            <li>检查错误日志中是否有推送相关消息</li>
+                            <li>确认 WebSocket 服务器正在运行</li>
+                            <li>测试网络连接</li>
+                            <li>验证推送密钥配置</li>
+                        </ol>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>确认 <code>FD_WEBSOCKET_PUSH_SECRET</code> 与 WebSocket 服务器配置一致</li>
+                            <li>检查 WebSocket 服务器地址是否正确（默认：<code>http://websocket:8080/push-event</code>）</li>
+                            <li>确认防火墙没有阻止连接</li>
+                            <li>检查 WebSocket 服务器日志</li>
+                        </ol>
+                    </div>
+
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：WebSocket 推送失败</h4>
+                        <p><strong>错误消息示例：</strong></p>
+                        <pre><code>[FD WebSocket Push ERROR] WebSocket push failed: Connection timeout</code></pre>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>检查 WebSocket 服务器状态</li>
+                            <li>验证网络连接和 DNS 解析</li>
+                            <li>检查服务器负载和响应时间</li>
+                            <li>考虑增加超时时间</li>
+                        </ol>
+                    </div>
+
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：事件数据不完整</h4>
+                        <p><strong>可能原因：</strong></p>
+                        <ul>
+                            <li>文章元数据缺失</li>
+                            <li>分类法关联问题</li>
+                            <li>权限检查失败</li>
+                        </ul>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>检查文章的 <code>_fd_short_uuid</code> 元数据</li>
+                            <li>验证文章的分类法关联</li>
+                            <li>确认文章类型为公开类型</li>
+                            <li>检查文章状态和权限设置</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>缓存失效问题</h3>
+                    
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：前端缓存没有失效</h4>
+                        <p><strong>诊断步骤：</strong></p>
+                        <ol>
+                            <li>检查 <code>REVALIDATE_SECRET</code> 配置</li>
+                            <li>确认前端服务器正在运行</li>
+                            <li>检查缓存失效 API 响应</li>
+                            <li>验证缓存标签配置</li>
+                        </ol>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>确认 <code>REVALIDATE_SECRET</code> 与前端配置一致</li>
+                            <li>检查前端服务器地址（默认：<code>http://frontend:3000</code>）</li>
+                            <li>验证前端缓存失效 API 端点</li>
+                            <li>检查前端服务器日志</li>
+                        </ol>
+                    </div>
+
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：缓存失效请求失败</h4>
+                        <p><strong>错误消息示例：</strong></p>
+                        <pre><code>[FD WebSocket Push ERROR] REVALIDATE_SECRET is not defined. Cannot revalidate tag: homepage-posts</code></pre>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>在 <code>wp-config.php</code> 中定义 <code>REVALIDATE_SECRET</code></li>
+                            <li>确认常量值与前端应用配置一致</li>
+                            <li>重新测试缓存失效功能</li>
+                        </ol>
+                    </div>
+
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：分类法索引页文章数量不更新</h4>
+                        <p><strong>症状描述：</strong></p>
+                        <ul>
+                            <li>文章发布/取消发布后，分类页面的文章数量没有更新</li>
+                            <li>标签页面的文章数量显示不正确</li>
+                            <li>自定义分类法页面的文章数量不同步</li>
+                        </ul>
+                        <p><strong>可能原因：</strong></p>
+                        <ul>
+                            <li>分类法缓存失效方法未被调用</li>
+                            <li>WebSocket事件未发送到分类法页面</li>
+                            <li>前端分类法页面缓存配置问题</li>
+                        </ul>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>确认插件版本 ≥ 1.0.1（此问题在该版本中已修复）</li>
+                            <li>检查错误日志中是否有分类法相关的处理记录：
+                                <pre><code>[FD WebSocket Push] Invalidating taxonomy caches for post 123 (reason: post status change)
+[FD WebSocket Push] Invalidating index cache tag: category-index-page
+[FD WebSocket Push] Notifying taxonomy updates for post 123</code></pre>
+                            </li>
+                            <li>验证分类法缓存标签是否正确失效：
+                                <ul>
+                                    <li><code>category-index-page</code> - 分类索引页</li>
+                                    <li><code>tag-index-page</code> - 标签索引页</li>
+                                    <li><code>taxonomy:custom_taxonomy</code> - 自定义分类法索引页</li>
+                                    <li><code>category:slug</code> - 具体分类页</li>
+                                    <li><code>tag:slug</code> - 具体标签页</li>
+                                </ul>
+                            </li>
+                            <li>检查WebSocket事件是否发送：
+                                <pre><code>[FD WebSocket Push] Sending WebSocket event: category:updated
+[FD WebSocket Push] Sending WebSocket event: tag:updated
+[FD WebSocket Push] Sending WebSocket event: taxonomy:updated</code></pre>
+                            </li>
+                        </ol>
+                        <p><strong>测试方法：</strong></p>
+                        <ol>
+                            <li>发布一篇带有分类和标签的文章</li>
+                            <li>检查WordPress错误日志中的处理记录</li>
+                            <li>访问相关分类法页面，确认文章数量已更新</li>
+                            <li>将文章改为草稿，再次检查页面更新</li>
+                        </ol>
+                    </div>
+
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：特定页面缓存没有失效</h4>
+                        <p><strong>可能原因：</strong></p>
+                        <ul>
+                            <li>缓存标签配置错误</li>
+                            <li>前端缓存策略问题</li>
+                            <li>网络连接问题</li>
+                        </ul>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>检查相关的缓存标签是否正确</li>
+                            <li>手动测试缓存失效 API</li>
+                            <li>检查前端缓存配置</li>
+                            <li>验证页面的缓存标签设置</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>性能相关问题</h3>
+                    
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：WordPress 后台响应变慢</h4>
+                        <p><strong>可能原因：</strong></p>
+                        <ul>
+                            <li>WebSocket 请求阻塞</li>
+                            <li>大量事件同时触发</li>
+                            <li>网络延迟过高</li>
+                        </ul>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>确认所有外部请求都是非阻塞的</li>
+                            <li>检查 WebSocket 服务器响应时间</li>
+                            <li>考虑使用队列系统处理大量事件</li>
+                            <li>优化网络连接</li>
+                        </ol>
+                    </div>
+
+                    <div class="troubleshoot-item">
+                        <h4>❌ 问题：内存使用过高</h4>
+                        <p><strong>解决方案：</strong></p>
+                        <ol>
+                            <li>增加 PHP 内存限制</li>
+                            <li>检查是否有内存泄漏</li>
+                            <li>优化事件处理逻辑</li>
+                            <li>考虑使用对象缓存</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>调试工具和技巧</h3>
+                    
+                    <h4>启用调试模式</h4>
+                    <p>在 <code>wp-config.php</code> 中启用调试：</p>
+                    <pre><code>define( 'WP_DEBUG', true );
+define( 'WP_DEBUG_LOG', true );
+define( 'WP_DEBUG_DISPLAY', false );</code></pre>
+
+                    <h4>查看错误日志</h4>
+                    <p>错误日志通常位于：</p>
+                    <ul>
+                        <li><code>/wp-content/debug.log</code></li>
+                        <li><code>/var/log/apache2/error.log</code></li>
+                        <li><code>/var/log/nginx/error.log</code></li>
+                    </ul>
+
+                    <h4>手动测试 WebSocket 推送</h4>
+                    <pre><code>// 在主题的 functions.php 中添加测试代码
+add_action( 'init', function() {
+    if ( isset( $_GET['test_websocket'] ) ) {
+        $pusher = FD_WebSocket_Push_WebSocket_Pusher::get_instance();
+        $result = $pusher->send_event( 'test:event', 'public', [
+            'message' => 'Test message',
+            'timestamp' => time()
+        ] );
+        
+        if ( is_wp_error( $result ) ) {
+            wp_die( 'WebSocket test failed: ' . $result->get_error_message() );
+        } else {
+            wp_die( 'WebSocket test successful' );
+        }
+    }
+} );
+
+// 访问：http://yoursite.com/?test_websocket=1</code></pre>
+
+                    <h4>手动测试缓存失效</h4>
+                    <pre><code>// 测试缓存失效
+add_action( 'init', function() {
+    if ( isset( $_GET['test_cache'] ) ) {
+        $cache_invalidator = FD_WebSocket_Push_Cache_Invalidator::get_instance();
+        $cache_invalidator->revalidate_tag( 'test-cache-tag' );
+        wp_die( 'Cache invalidation test completed. Check logs.' );
+    }
+} );
+
+// 访问：http://yoursite.com/?test_cache=1</code></pre>
+                </div>
+
+                <div class="info-section">
+                    <h3>日志分析</h3>
+                    
+                    <h4>正常运行的日志示例</h4>
+                    <pre><code># 插件激活
+[FD WebSocket Push] FD WebSocket Push plugin activated
+
+# 文章更新事件
+[FD WebSocket Push] Processing post update for post 123 (type: post, status: publish)
+[FD WebSocket Push] Sending WebSocket event: post:updated to target: public
+[FD WebSocket Push] WebSocket push sent successfully (non-blocking)
+
+# 缓存失效
+[FD WebSocket Push] Revalidate tag queued: homepage-posts
+[FD WebSocket Push] Invalidated list caches for post 123 (post)</code></pre>
+
+                    <h4>错误日志分析</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td><strong>SECRET not defined</strong></td>
+                            <td>配置常量未定义</td>
+                        </tr>
+                        <tr>
+                            <td><strong>WebSocket push failed</strong></td>
+                            <td>WebSocket 服务器连接问题</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cannot revalidate</strong></td>
+                            <td>缓存失效配置问题</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PHP Fatal error</strong></td>
+                            <td>代码错误或内存不足</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="warning-box">
+                    <h4>🆘 获取帮助</h4>
+                    <p>如果以上解决方案都无法解决您的问题，请：</p>
+                    <ul>
+                        <li>收集详细的错误日志</li>
+                        <li>记录重现问题的步骤</li>
+                        <li>提供环境信息（WordPress 版本、PHP 版本等）</li>
+                        <li>联系技术支持：<a href="mailto:support@example.com">support@example.com</a></li>
+                        <li>在 GitHub 上提交 Issue：<a href="https://github.com/your-repo/fd-websocket-push/issues" target="_blank">GitHub Issues</a></li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 FD WebSocket Push Plugin. 保留所有权利。</p>
+                <p>
+                    <a href="https://github.com/your-repo/fd-websocket-push" target="_blank">GitHub</a> |
+                    <a href="mailto:support@example.com">技术支持</a> |
+                    <a href="examples.html">使用示例</a>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>

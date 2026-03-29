@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用示例 - FD WebSocket Push 插件文档</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🚀</span>
+                    FD WebSocket Push
+                </h1>
+                <p class="subtitle">使用示例和最佳实践</p>
+            </div>
+        </header>
+
+        <nav class="navigation">
+            <ul class="nav-list">
+                <li><a href="index.html" class="nav-link">概述</a></li>
+                <li><a href="installation.html" class="nav-link">安装配置</a></li>
+                <li><a href="api-reference.html" class="nav-link">API 参考</a></li>
+                <li><a href="events.html" class="nav-link">事件系统</a></li>
+                <li><a href="cache.html" class="nav-link">缓存管理</a></li>
+                <li><a href="migration.html" class="nav-link">迁移指南</a></li>
+                <li><a href="troubleshooting.html" class="nav-link">故障排除</a></li>
+                <li><a href="examples.html" class="nav-link active">使用示例</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <section class="content-section">
+                <h2>使用示例</h2>
+
+                <div class="info-section">
+                    <h3>基础配置示例</h3>
+                    
+                    <h4>wp-config.php 配置</h4>
+                    <pre><code><?php
+// WordPress 配置文件示例
+
+// 数据库配置
+define( 'DB_NAME', 'your_database' );
+define( 'DB_USER', 'your_username' );
+define( 'DB_PASSWORD', 'your_password' );
+define( 'DB_HOST', 'localhost' );
+
+// FD WebSocket Push 插件配置
+define( 'FD_WEBSOCKET_PUSH_SECRET', 'your-secure-websocket-secret-key-32-chars' );
+define( 'REVALIDATE_SECRET', 'your-secure-revalidate-secret-key-32-chars' );
+
+// 调试配置（开发环境）
+define( 'WP_DEBUG', true );
+define( 'WP_DEBUG_LOG', true );
+define( 'WP_DEBUG_DISPLAY', false );
+
+// WordPress 设置
+require_once ABSPATH . 'wp-settings.php';</code></pre>
+                </div>
+
+                <div class="info-section">
+                    <h3>自定义事件推送</h3>
+                    
+                    <h4>发送自定义 WebSocket 事件</h4>
+                    <pre><code><?php
+// 在主题的 functions.php 中添加自定义事件
+
+// 示例：用户登录时发送通知
+add_action( 'wp_login', 'send_user_login_notification', 10, 2 );
+
+function send_user_login_notification( $user_login, $user ) {
+    // 获取 WebSocket 推送器实例
+    $pusher = FD_WebSocket_Push_WebSocket_Pusher::get_instance();
+    
+    // 构建事件数据
+    $event_data = [
+        'userId' => $user->ID,
+        'username' => $user_login,
+        'displayName' => $user->display_name,
+        'loginTime' => current_time( 'mysql' ),
+        'userAgent' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'
+    ];
+    
+    // 发送事件到管理员房间
+    $result = $pusher->send_event( 'user:login', 'admin_users', $event_data );
+    
+    if ( is_wp_error( $result ) ) {
+        error_log( 'Failed to send user login notification: ' . $result->get_error_message() );
+    }
+}</code></pre>
+
+                    <h4>发送自定义缓存失效</h4>
+                    <pre><code><?php
+// 示例：自定义字段更新时失效相关缓存
+
+add_action( 'updated_post_meta', 'handle_custom_meta_update', 10, 4 );
+
+function handle_custom_meta_update( $meta_id, $post_id, $meta_key, $meta_value ) {
+    // 只处理特定的自定义字段
+    if ( $meta_key !== 'featured_content' ) {
+        return;
+    }
+    
+    // 获取缓存失效器实例
+    $cache_invalidator = FD_WebSocket_Push_Cache_Invalidator::get_instance();
+    
+    // 失效首页缓存
+    $cache_invalidator->revalidate_tag( 'homepage-featured' );
+    
+    // 失效文章详情页缓存
+    $post = get_post( $post_id );
+    if ( $post ) {
+        $short_uuid = get_post_meta( $post_id, '_fd_short_uuid', true );
+        if ( $short_uuid ) {
+            $cache_invalidator->revalidate_tag( 'post:' . $short_uuid );
+        }
+    }
+    
+    // 记录日志
+    FD_WebSocket_Push_Helper::log( 
+        "Custom meta 'featured_content' updated for post {$post_id}, cache invalidated" 
+    );
+}</code></pre>
+                </div>
+
+                <div class="info-section">
+                    <h3>前端集成示例</h3>
+                    
+                    <h4>Next.js WebSocket 客户端</h4>
+                    <pre><code>// hooks/useWebSocket.js
+import { useEffect, useState } from 'react';
+import io from 'socket.io-client';
+
+export function useWebSocket(room = 'public') {
+  const [socket, setSocket] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    // 连接到 WebSocket 服务器
+    const newSocket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL, {
+      transports: ['websocket'],
+      autoConnect: true,
+    });
+
+    // 加入指定房间
+    newSocket.emit('join-room', room);
+
+    // 连接事件
+    newSocket.on('connect', () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+    });
+
+    // 监听推送事件
+    newSocket.on('push-event', (eventData) => {
+      console.log('Received event:', eventData);
+      setEvents(prev => [...prev, eventData]);
+      
+      // 处理不同类型的事件
+      handleEvent(eventData);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.close();
+    };
+  }, [room]);
+
+  const handleEvent = (eventData) => {
+    const { event, data } = eventData;
+    
+    switch (event) {
+      case 'post:updated':
+        // 处理文章更新事件
+        handlePostUpdate(data);
+        break;
+        
+      case 'post:inserted':
+        // 处理新文章发布事件
+        handlePostInsert(data);
+        break;
+        
+      case 'post:unlocked':
+        // 处理文章解锁事件
+        handlePostUnlock(data);
+        break;
+        
+      case 'category:updated':
+        // 处理分类更新事件
+        handleCategoryUpdate(data);
+        break;
+        
+      default:
+        console.log('Unhandled event type:', event);
+    }
+  };
+
+  const handlePostUpdate = (data) => {
+    // 刷新文章数据或显示通知
+    console.log('Post updated:', data.postId);
+  };
+
+  const handlePostInsert = (data) => {
+    // 显示新文章通知
+    console.log('New post published:', data.title);
+  };
+
+  const handlePostUnlock = (data) => {
+    // 刷新用户的解锁文章列表
+    console.log('Post unlocked:', data.postId);
+  };
+
+  const handleCategoryUpdate = (data) => {
+    // 刷新分类相关数据
+    console.log('Category updated:', data.slug);
+  };
+
+  return {
+    socket,
+    events,
+    isConnected,
+  };
+}</code></pre>
+
+                    <h4>React 组件使用示例</h4>
+                    <pre><code>// components/LiveUpdates.jsx
+import { useWebSocket } from '../hooks/useWebSocket';
+import { useEffect, useState } from 'react';
+
+export default function LiveUpdates({ userLevel = null }) {
+  const [notifications, setNotifications] = useState([]);
+  
+  // 根据用户级别确定房间
+  const room = userLevel ? `level_${userLevel}` : 'public';
+  const { events, isConnected } = useWebSocket(room);
+
+  useEffect(() => {
+    // 处理新事件
+    if (events.length > 0) {
+      const latestEvent = events[events.length - 1];
+      addNotification(latestEvent);
+    }
+  }, [events]);
+
+  const addNotification = (eventData) => {
+    const { event, data } = eventData;
+    let message = '';
+
+    switch (event) {
+      case 'post:inserted':
+        message = `新文章发布：${data.title}`;
+        break;
+      case 'post:updated':
+        message = `文章已更新：${data.title || `文章 ${data.postId}`}`;
+        break;
+      case 'post:unlocked':
+        message = `文章解锁成功！`;
+        break;
+      default:
+        message = `收到更新通知`;
+    }
+
+    const notification = {
+      id: Date.now(),
+      message,
+      timestamp: new Date(),
+      event: event,
+      data: data,
+    };
+
+    setNotifications(prev => [notification, ...prev.slice(0, 4)]); // 保留最新5条
+
+    // 3秒后自动移除通知
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, 3000);
+  };
+
+  return (
+    <div className="live-updates">
+      <div className="connection-status">
+        <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
+          {isConnected ? '🟢 已连接' : '🔴 未连接'}
+        </span>
+      </div>
+      
+      <div className="notifications">
+        {notifications.map(notification => (
+          <div key={notification.id} className="notification">
+            <div className="notification-message">
+              {notification.message}
+            </div>
+            <div className="notification-time">
+              {notification.timestamp.toLocaleTimeString()}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}</code></pre>
+                </div>
+
+                <div class="info-section">
+                    <h3>高级用法示例</h3>
+                    
+                    <h4>自定义事件过滤器</h4>
+                    <pre><code><?php
+// 根据条件禁用特定事件
+
+// 禁用草稿文章的推送事件
+add_filter( 'fd_websocket_push_should_send_post_event', 'filter_draft_posts', 10, 3 );
+
+function filter_draft_posts( $should_send, $event_type, $post ) {
+    // 草稿文章不发送推送事件
+    if ( $post->post_status === 'draft' ) {
+        return false;
+    }
+    
+    // 私有文章只发送给管理员
+    if ( $post->post_status === 'private' && $event_type === 'post:updated' ) {
+        // 这里可以修改目标受众
+        add_filter( 'fd_websocket_push_event_target', function( $target ) {
+            return 'admin_users';
+        } );
+    }
+    
+    return $should_send;
+}
+
+// 自定义 WebSocket 服务器地址
+add_filter( 'fd_websocket_push_server_url', 'custom_websocket_server' );
+
+function custom_websocket_server( $url ) {
+    // 根据环境使用不同的服务器
+    if ( defined( 'WP_ENV' ) && WP_ENV === 'production' ) {
+        return 'https://websocket.yoursite.com/push-event';
+    } else {
+        return 'http://localhost:8080/push-event';
+    }
+}</code></pre>
+
+                    <h4>批量操作优化</h4>
+                    <pre><code><?php
+// 批量导入时暂时禁用推送事件
+
+class BatchImportManager {
+    private $events_disabled = false;
+    
+    public function start_batch_import() {
+        // 暂时禁用推送事件
+        $this->events_disabled = true;
+        add_filter( 'fd_websocket_push_enable_post_events', '__return_false' );
+        add_filter( 'fd_websocket_push_enable_taxonomy_events', '__return_false' );
+        
+        FD_WebSocket_Push_Helper::log( 'Batch import started, events disabled' );
+    }
+    
+    public function end_batch_import() {
+        // 重新启用推送事件
+        remove_filter( 'fd_websocket_push_enable_post_events', '__return_false' );
+        remove_filter( 'fd_websocket_push_enable_taxonomy_events', '__return_false' );
+        $this->events_disabled = false;
+        
+        // 发送批量更新通知
+        $this->send_batch_update_notification();
+        
+        FD_WebSocket_Push_Helper::log( 'Batch import completed, events re-enabled' );
+    }
+    
+    private function send_batch_update_notification() {
+        $pusher = FD_WebSocket_Push_WebSocket_Pusher::get_instance();
+        $pusher->send_event( 'batch:import-completed', 'public', [
+            'timestamp' => current_time( 'mysql' ),
+            'message' => 'Content has been updated'
+        ] );
+        
+        // 失效相关缓存
+        $cache_invalidator = FD_WebSocket_Push_Cache_Invalidator::get_instance();
+        $cache_invalidator->revalidate_tag( 'homepage-posts' );
+        $cache_invalidator->revalidate_tag( 'category-index-page' );
+        $cache_invalidator->revalidate_tag( 'tag-index-page' );
+    }
+}
+
+// 使用示例
+$batch_manager = new BatchImportManager();
+$batch_manager->start_batch_import();
+
+// 执行批量操作...
+// wp_insert_post(...);
+// wp_insert_post(...);
+
+$batch_manager->end_batch_import();</code></pre>
+                </div>
+
+                <div class="info-section">
+                    <h3>监控和分析</h3>
+                    
+                    <h4>事件统计</h4>
+                    <pre><code><?php
+// 统计推送事件数量
+
+class WebSocketEventStats {
+    private static $stats = [];
+    
+    public static function init() {
+        add_action( 'fd_websocket_push_event_sent', [ __CLASS__, 'record_event' ], 10, 3 );
+        add_action( 'wp_footer', [ __CLASS__, 'display_stats' ] );
+    }
+    
+    public static function record_event( $event_type, $target, $data ) {
+        if ( ! isset( self::$stats[ $event_type ] ) ) {
+            self::$stats[ $event_type ] = 0;
+        }
+        self::$stats[ $event_type ]++;
+        
+        // 记录到数据库（可选）
+        $total_events = get_option( 'websocket_total_events', 0 );
+        update_option( 'websocket_total_events', $total_events + 1 );
+    }
+    
+    public static function display_stats() {
+        if ( current_user_can( 'manage_options' ) && ! empty( self::$stats ) ) {
+            echo '<div style="position:fixed;bottom:10px;right:10px;background:#fff;padding:10px;border:1px solid #ccc;font-size:12px;">';
+            echo '<strong>WebSocket Events:</strong><br>';
+            foreach ( self::$stats as $event => $count ) {
+                echo "{$event}: {$count}<br>";
+            }
+            echo '</div>';
+        }
+    }
+}
+
+// 启用统计
+WebSocketEventStats::init();</code></pre>
+
+                    <h4>性能监控</h4>
+                    <pre><code><?php
+// 监控 WebSocket 推送性能
+
+add_action( 'fd_websocket_push_before_send', 'start_performance_timer' );
+add_action( 'fd_websocket_push_after_send', 'end_performance_timer' );
+
+function start_performance_timer() {
+    if ( ! defined( 'WEBSOCKET_PUSH_START_TIME' ) ) {
+        define( 'WEBSOCKET_PUSH_START_TIME', microtime( true ) );
+    }
+}
+
+function end_performance_timer( $success, $event_type ) {
+    if ( defined( 'WEBSOCKET_PUSH_START_TIME' ) ) {
+        $duration = microtime( true ) - WEBSOCKET_PUSH_START_TIME;
+        
+        // 记录性能数据
+        $performance_log = [
+            'event_type' => $event_type,
+            'duration' => $duration,
+            'success' => $success,
+            'timestamp' => current_time( 'mysql' ),
+            'memory_usage' => memory_get_usage( true ),
+        ];
+        
+        // 如果推送时间过长，记录警告
+        if ( $duration > 1.0 ) { // 超过1秒
+            FD_WebSocket_Push_Helper::log( 
+                "Slow WebSocket push detected: {$event_type} took {$duration}s", 
+                'WARNING' 
+            );
+        }
+        
+        // 保存性能数据到数据库或文件
+        error_log( 'WebSocket Performance: ' . json_encode( $performance_log ) );
+    }
+}</code></pre>
+                </div>
+
+                <div class="warning-box">
+                    <h4>💡 最佳实践建议</h4>
+                    <ul>
+                        <li><strong>测试环境验证</strong> - 在生产环境部署前，在测试环境充分验证所有功能</li>
+                        <li><strong>渐进式部署</strong> - 先在低流量时段部署，逐步扩展到高峰时段</li>
+                        <li><strong>监控和日志</strong> - 持续监控系统性能和错误日志</li>
+                        <li><strong>备份策略</strong> - 确保有完整的回滚计划</li>
+                        <li><strong>性能优化</strong> - 定期检查和优化 WebSocket 服务器性能</li>
+                        <li><strong>安全考虑</strong> - 定期更换密钥，确保网络安全</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 FD WebSocket Push Plugin. 保留所有权利。</p>
+                <p>
+                    <a href="https://github.com/your-repo/fd-websocket-push" target="_blank">GitHub</a> |
+                    <a href="mailto:support@example.com">技术支持</a> |
+                    <a href="api-reference.html">API 参考</a>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>
