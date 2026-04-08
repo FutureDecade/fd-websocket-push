@@ -51,7 +51,7 @@ class FD_Current_User_Event_Handler {
         add_action('password_reset', array($this, 'handle_password_reset'), 10, 2);
         
         // GraphQL 用户更新 mutations（如果使用 WPGraphQL）
-        add_action('graphql_user_object_mutation', array($this, 'handle_graphql_user_mutation'), 10, 3);
+        add_action('graphql_user_object_mutation_update_additional_data', array($this, 'handle_graphql_user_mutation'), 10, 5);
         
         // 会员等级变更（集成会员系统）
         add_action('user_membership_level_changed', array($this, 'handle_membership_level_change'), 10, 3);
@@ -425,17 +425,24 @@ class FD_Current_User_Event_Handler {
     /**
      * 处理GraphQL用户变更
      * 
-     * @param string $mutation_name Mutation名称
+     * @param int $user_id 用户ID
      * @param array $input 输入数据
-     * @param WP_User $user 用户对象
+     * @param string $mutation_name Mutation名称
+     * @param mixed $context GraphQL 上下文
+     * @param mixed $info GraphQL ResolveInfo
      */
-    public function handle_graphql_user_mutation($mutation_name, $input, $user) {
-        error_log("[Current User Event] GraphQL用户Mutation - {$mutation_name}, 用户ID: {$user->ID}");
-        
-        $this->push_user_status_update($user->ID, 'graphql_updated', array(
+    public function handle_graphql_user_mutation($user_id, $input, $mutation_name, $context = null, $info = null) {
+        $user_id = absint($user_id);
+        if (!$user_id) {
+            return;
+        }
+
+        error_log("[Current User Event] GraphQL用户Mutation - {$mutation_name}, 用户ID: {$user_id}");
+
+        $this->push_user_status_update($user_id, 'graphql_updated', array(
             'mutation' => $mutation_name,
             'input' => $input,
-            'user_data' => $this->get_current_user_data($user->ID)
+            'user_data' => $this->get_current_user_data($user_id)
         ));
     }
 }
