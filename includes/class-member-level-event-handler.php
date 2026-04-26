@@ -43,14 +43,14 @@ class FD_Member_Level_Event_Handler {
         // 监听会员升级相关的支付完成事件
         add_action('fd_payment_order_completed', array($this, 'handle_member_upgrade_payment_completed'), 10, 2);
         
-        error_log('[Member Level Event Handler] Hooks initialized');
+        FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Hooks initialized');
     }
     
     /**
      * 处理会员等级配置更新
      */
     public function handle_member_levels_updated($old_value, $new_value, $option_name) {
-        error_log('[Member Level Event Handler] Member levels updated');
+        FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Member levels updated');
         
         try {
             // 发送会员等级更新事件
@@ -59,10 +59,10 @@ class FD_Member_Level_Event_Handler {
             // 触发Next.js缓存失效
             $this->invalidate_nextjs_cache();
             
-            error_log('[Member Level Event Handler] Member levels update event sent successfully');
+            FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Member levels update event sent successfully');
             
         } catch (Exception $e) {
-            error_log('[Member Level Event Handler] Error sending member levels update event: ' . $e->getMessage());
+            FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Error sending member levels update event: ' . $e->getMessage(), 'ERROR');
         }
     }
     
@@ -70,7 +70,7 @@ class FD_Member_Level_Event_Handler {
      * 处理默认会员等级更新
      */
     public function handle_default_level_updated($old_value, $new_value, $option_name) {
-        error_log('[Member Level Event Handler] Default member level updated');
+        FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Default member level updated');
         
         try {
             // 发送会员等级更新事件
@@ -79,10 +79,10 @@ class FD_Member_Level_Event_Handler {
             // 触发Next.js缓存失效
             $this->invalidate_nextjs_cache();
             
-            error_log('[Member Level Event Handler] Default level update event sent successfully');
+            FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Default level update event sent successfully');
             
         } catch (Exception $e) {
-            error_log('[Member Level Event Handler] Error sending default level update event: ' . $e->getMessage());
+            FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Error sending default level update event: ' . $e->getMessage(), 'ERROR');
         }
     }
     
@@ -95,16 +95,16 @@ class FD_Member_Level_Event_Handler {
             return;
         }
         
-        error_log("[Member Level Event Handler] User {$user_id} member level updated to: {$meta_value}");
+        FD_WebSocket_Push_Helper::log("[Member Level Event Handler] User {$user_id} member level updated to: {$meta_value}");
         
         try {
             // 发送用户会员等级更新事件
             $this->websocket_pusher->send_user_member_level_updated_event($user_id, $meta_value);
             
-            error_log("[Member Level Event Handler] User member level update event sent successfully for user {$user_id}");
+            FD_WebSocket_Push_Helper::log("[Member Level Event Handler] User member level update event sent successfully for user {$user_id}");
             
         } catch (Exception $e) {
-            error_log("[Member Level Event Handler] Error sending user member level update event: " . $e->getMessage());
+            FD_WebSocket_Push_Helper::log("[Member Level Event Handler] Error sending user member level update event: " . $e->getMessage(), 'ERROR');
         }
     }
     
@@ -117,16 +117,16 @@ class FD_Member_Level_Event_Handler {
             return;
         }
         
-        error_log("[Member Level Event Handler] User {$user_id} member level deleted");
+        FD_WebSocket_Push_Helper::log("[Member Level Event Handler] User {$user_id} member level deleted");
         
         try {
             // 发送用户会员等级删除事件
             $this->websocket_pusher->send_user_member_level_updated_event($user_id, null);
             
-            error_log("[Member Level Event Handler] User member level delete event sent successfully for user {$user_id}");
+            FD_WebSocket_Push_Helper::log("[Member Level Event Handler] User member level delete event sent successfully for user {$user_id}");
             
         } catch (Exception $e) {
-            error_log("[Member Level Event Handler] Error sending user member level delete event: " . $e->getMessage());
+            FD_WebSocket_Push_Helper::log("[Member Level Event Handler] Error sending user member level delete event: " . $e->getMessage(), 'ERROR');
         }
     }
     
@@ -139,16 +139,16 @@ class FD_Member_Level_Event_Handler {
             return;
         }
         
-        error_log("[Member Level Event Handler] User {$user_id} member level expiration updated to: {$meta_value}");
+        FD_WebSocket_Push_Helper::log("[Member Level Event Handler] User {$user_id} member level expiration updated to: {$meta_value}");
         
         try {
             // 发送用户会员等级过期时间更新事件
             $this->websocket_pusher->send_user_member_expiration_updated_event($user_id, $meta_value);
             
-            error_log("[Member Level Event Handler] User member expiration update event sent successfully for user {$user_id}");
+            FD_WebSocket_Push_Helper::log("[Member Level Event Handler] User member expiration update event sent successfully for user {$user_id}");
             
         } catch (Exception $e) {
-            error_log("[Member Level Event Handler] Error sending user member expiration update event: " . $e->getMessage());
+            FD_WebSocket_Push_Helper::log("[Member Level Event Handler] Error sending user member expiration update event: " . $e->getMessage(), 'ERROR');
         }
     }
     
@@ -168,16 +168,16 @@ class FD_Member_Level_Event_Handler {
             return;
         }
         
-        error_log("[Member Level Event Handler] Member upgrade payment completed for user {$user_id}, level {$level_id}");
+        FD_WebSocket_Push_Helper::log("[Member Level Event Handler] Member upgrade payment completed for user {$user_id}, level {$level_id}");
         
         try {
             // 发送会员升级完成事件
             $this->websocket_pusher->send_member_upgrade_completed_event($user_id, $level_id, $order_id);
             
-            error_log("[Member Level Event Handler] Member upgrade completed event sent successfully");
+            FD_WebSocket_Push_Helper::log("[Member Level Event Handler] Member upgrade completed event sent successfully");
             
         } catch (Exception $e) {
-            error_log("[Member Level Event Handler] Error sending member upgrade completed event: " . $e->getMessage());
+            FD_WebSocket_Push_Helper::log("[Member Level Event Handler] Error sending member upgrade completed event: " . $e->getMessage(), 'ERROR');
         }
     }
     
@@ -189,7 +189,7 @@ class FD_Member_Level_Event_Handler {
             $nextjs_revalidate_url = get_option('fd_websocket_nextjs_revalidate_url', '');
             
             if (empty($nextjs_revalidate_url)) {
-                error_log('[Member Level Event Handler] Next.js revalidate URL not configured');
+                FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Next.js revalidate URL not configured');
                 return;
             }
             
@@ -208,18 +208,18 @@ class FD_Member_Level_Event_Handler {
             ));
             
             if (is_wp_error($response)) {
-                error_log('[Member Level Event Handler] Failed to invalidate Next.js cache: ' . $response->get_error_message());
+                FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Failed to invalidate Next.js cache: ' . $response->get_error_message(), 'ERROR');
             } else {
                 $response_code = wp_remote_retrieve_response_code($response);
                 if ($response_code === 200) {
-                    error_log('[Member Level Event Handler] Next.js cache invalidated successfully');
+                    FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Next.js cache invalidated successfully');
                 } else {
-                    error_log('[Member Level Event Handler] Next.js cache invalidation failed with code: ' . $response_code);
+                    FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Next.js cache invalidation failed with code: ' . $response_code, 'ERROR');
                 }
             }
             
         } catch (Exception $e) {
-            error_log('[Member Level Event Handler] Error invalidating Next.js cache: ' . $e->getMessage());
+            FD_WebSocket_Push_Helper::log('[Member Level Event Handler] Error invalidating Next.js cache: ' . $e->getMessage(), 'ERROR');
         }
     }
     

@@ -53,7 +53,7 @@ class FD_WebSocket_Push_Event_Logger {
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
         
-        error_log('[Event Logger] Database table created: ' . $this->table_name);
+        FD_WebSocket_Push_Helper::log('[Event Logger] Database table created: ' . $this->table_name);
     }
     
     /**
@@ -74,12 +74,12 @@ class FD_WebSocket_Push_Event_Logger {
         );
         
         if ($result === false) {
-            error_log('[Event Logger] Failed to log event: ' . $wpdb->last_error);
+            FD_WebSocket_Push_Helper::log('[Event Logger] Failed to log event: ' . $wpdb->last_error, 'ERROR');
             return false;
         }
         
         $event_id = $wpdb->insert_id;
-        error_log("[Event Logger] Event logged: ID={$event_id}, Type={$event_type}, Room={$target_room}");
+        FD_WebSocket_Push_Helper::log("[Event Logger] Event logged: ID={$event_id}, Type={$event_type}, Room={$target_room}");
         
         return $event_id;
     }
@@ -112,11 +112,11 @@ class FD_WebSocket_Push_Event_Logger {
         );
         
         if ($result === false) {
-            error_log('[Event Logger] Failed to update event status: ' . $wpdb->last_error);
+            FD_WebSocket_Push_Helper::log('[Event Logger] Failed to update event status: ' . $wpdb->last_error, 'ERROR');
             return false;
         }
         
-        error_log("[Event Logger] Event status updated: ID={$event_id}, Status={$status}");
+        FD_WebSocket_Push_Helper::log("[Event Logger] Event status updated: ID={$event_id}, Status={$status}");
         return true;
     }
     
@@ -198,7 +198,7 @@ class FD_WebSocket_Push_Event_Logger {
         ));
         
         if ($result !== false) {
-            error_log("[Event Logger] Cleaned up {$result} old events older than {$days} days");
+            FD_WebSocket_Push_Helper::log("[Event Logger] Cleaned up {$result} old events older than {$days} days");
         }
         
         return $result;

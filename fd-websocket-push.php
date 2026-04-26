@@ -148,16 +148,14 @@ class FD_WebSocket_Push {
      * Plugin activation
      */
     public function activate() {
-        // Add any activation logic here
-        error_log( 'FD WebSocket Push plugin activated' );
+        // Reserved for activation logic.
     }
     
     /**
      * Plugin deactivation
      */
     public function deactivate() {
-        // Add any deactivation logic here
-        error_log( 'FD WebSocket Push plugin deactivated' );
+        // Reserved for deactivation logic.
     }
 }
 

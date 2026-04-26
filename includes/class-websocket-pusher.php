@@ -164,13 +164,6 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             $preview_content = fd_member_generate_preview( $post_id );
             $preview_mode = get_post_meta( $post_id, '_fd_preview_mode', true ) ?: 'excerpt';
             $preview_value = get_post_meta( $post_id, '_fd_preview_value', true );
-
-            // 调试信息
-            error_log( "[WS DEBUG] Post {$post_id} preview content generated:" );
-            error_log( "[WS DEBUG] - Preview mode: {$preview_mode}" );
-            error_log( "[WS DEBUG] - Preview value: {$preview_value}" );
-            error_log( "[WS DEBUG] - Preview content length: " . strlen( $preview_content ) );
-            error_log( "[WS DEBUG] - Preview content: " . substr( $preview_content, 0, 100 ) . '...' );
         }
 
         // 准备公开信息（所有用户都可以看到的信息）
@@ -202,10 +195,6 @@ class FD_WebSocket_Push_WebSocket_Pusher {
         $success = true;
 
         if ( $target_room === 'protected_content' ) {
-            // 对于付费墙文章：
-            error_log( "[WS DEBUG] Sending protected content update for post {$post_id}" );
-            error_log( "[WS DEBUG] Public data preview content: " . substr( $public_data['previewContent'] ?? '', 0, 50 ) . '...' );
-
             // 1. 公开信息推送给所有用户
             $public_result = $this->send_event( 'post:updated', 'public', $public_data );
             if ( ! $public_result ) {
@@ -214,7 +203,6 @@ class FD_WebSocket_Push_WebSocket_Pusher {
 
             // 2. 完整信息推送给有权限的用户
             $authorized_users = FD_WebSocket_Push_Helper::get_post_authorized_users( $post_id, $post );
-            error_log( "[WS DEBUG] Authorized users count: " . count( $authorized_users ) );
             foreach ( $authorized_users as $user_id ) {
                 $result = $this->send_event( 'post:updated', 'user_' . $user_id, $full_data );
                 if ( ! $result ) {
@@ -225,7 +213,6 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             return $success;
         } else {
             // 对于公开文章：直接推送完整信息到公开房间
-            error_log( "[WS DEBUG] Sending public content update for post {$post_id} to room: {$target_room}" );
             return $this->send_event( 'post:updated', $target_room, $full_data );
         }
     }

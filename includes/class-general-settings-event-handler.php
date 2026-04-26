@@ -14,7 +14,7 @@ class FD_WebSocket_Push_General_Settings_Event_Handler {
         
         $this->register_hooks();
         
-        error_log('[GeneralSettingsHandler] 常规设置事件处理器已初始化');
+        FD_WebSocket_Push_Helper::log('[GeneralSettingsHandler] 常规设置事件处理器已初始化');
     }
 
     /**
@@ -44,7 +44,7 @@ class FD_WebSocket_Push_General_Settings_Event_Handler {
         
         // 只有值真正改变时才处理
         if ($old_value !== $new_value) {
-            error_log(sprintf(
+            FD_WebSocket_Push_Helper::log(sprintf(
                 '[GeneralSettingsHandler] 常规设置 "%s" 已更新: "%s" -> "%s"',
                 $setting_name,
                 $this->format_value($old_value),
@@ -58,13 +58,13 @@ class FD_WebSocket_Push_General_Settings_Event_Handler {
                 // 使缓存失效
                 $this->invalidate_general_settings_cache();
                 
-                error_log('[GeneralSettingsHandler] ✅ 常规设置更新事件处理完成');
+                FD_WebSocket_Push_Helper::log('[GeneralSettingsHandler] 常规设置更新事件处理完成');
 
             } catch (Exception $e) {
-                error_log('[GeneralSettingsHandler] ❌ 处理常规设置更新时出错: ' . $e->getMessage());
+                FD_WebSocket_Push_Helper::log('[GeneralSettingsHandler] 处理常规设置更新时出错: ' . $e->getMessage(), 'ERROR');
             }
         } else {
-            error_log(sprintf(
+            FD_WebSocket_Push_Helper::log(sprintf(
                 '[GeneralSettingsHandler] 常规设置 "%s" 值未改变，跳过处理',
                 $setting_name
             ));
@@ -98,7 +98,7 @@ class FD_WebSocket_Push_General_Settings_Event_Handler {
         // 调用WebSocket推送器的专门方法
         $this->websocket_pusher->send_general_settings_updated_event($setting_name, $old_value, $new_value);
         
-        error_log('[GeneralSettingsHandler] 📡 已发送常规设置更新WebSocket事件');
+        FD_WebSocket_Push_Helper::log('[GeneralSettingsHandler] 已发送常规设置更新WebSocket事件');
     }
 
 
@@ -110,9 +110,9 @@ class FD_WebSocket_Push_General_Settings_Event_Handler {
             // 使Next.js ISR缓存失效
             $this->cache_invalidator->revalidate_tag('general-settings');
             
-            error_log('[GeneralSettingsHandler] 🔄 已触发常规设置缓存失效');
+            FD_WebSocket_Push_Helper::log('[GeneralSettingsHandler] 已触发常规设置缓存失效');
         } catch (Exception $e) {
-            error_log('[GeneralSettingsHandler] ❌ 缓存失效失败: ' . $e->getMessage());
+            FD_WebSocket_Push_Helper::log('[GeneralSettingsHandler] 缓存失效失败: ' . $e->getMessage(), 'ERROR');
         }
     }
 
