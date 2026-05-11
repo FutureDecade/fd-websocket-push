@@ -78,11 +78,11 @@ class FD_Current_User_Event_Handler {
      * @param WP_User $old_user_data 更新前的用户数据
      */
     public function handle_profile_update($user_id, $old_user_data) {
-        error_log("[Current User Event] 用户资料更新 - 用户ID: {$user_id}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] 用户资料更新 - 用户ID: {$user_id}");
         
         $user = get_user_by('id', $user_id);
         if (!$user) {
-            error_log("[Current User Event] 无法获取用户数据 - 用户ID: {$user_id}");
+            FD_WebSocket_Push_Helper::log("[Current User Event] 无法获取用户数据 - 用户ID: {$user_id}", 'ERROR');
             return;
         }
         
@@ -104,7 +104,7 @@ class FD_Current_User_Event_Handler {
         }
         
         if (empty($changes)) {
-            error_log("[Current User Event] 用户基本信息无变更，跳过推送");
+            FD_WebSocket_Push_Helper::log("[Current User Event] 用户基本信息无变更，跳过推送");
             return;
         }
         
@@ -143,7 +143,7 @@ class FD_Current_User_Event_Handler {
             return;
         }
         
-        error_log("[Current User Event] 用户Meta更新 - 用户ID: {$user_id}, 字段: {$meta_key}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] 用户Meta更新 - 用户ID: {$user_id}, 字段: {$meta_key}");
         
         $this->push_user_status_update($user_id, 'meta_updated', array(
             'meta_key' => $meta_key,
@@ -160,7 +160,7 @@ class FD_Current_User_Event_Handler {
      * @param string|null $old_roles 旧角色（仅在set_user_role时提供）
      */
     public function handle_user_role_change($user_id, $role, $old_roles = null) {
-        error_log("[Current User Event] 用户角色变更 - 用户ID: {$user_id}, 角色: {$role}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] 用户角色变更 - 用户ID: {$user_id}, 角色: {$role}");
         
         $this->push_user_status_update($user_id, 'role_updated', array(
             'role' => $role,
@@ -176,7 +176,7 @@ class FD_Current_User_Event_Handler {
      * @param WP_User $user 用户对象
      */
     public function handle_user_login($user_login, $user) {
-        error_log("[Current User Event] 用户登录 - 用户ID: {$user->ID}, 登录名: {$user_login}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] 用户登录 - 用户ID: {$user->ID}, 登录名: {$user_login}");
         
         // 更新最后登录时间
         update_user_meta($user->ID, 'last_login_time', current_time('mysql'));
@@ -195,7 +195,7 @@ class FD_Current_User_Event_Handler {
      * @param int $user_id 用户ID
      */
     public function handle_user_logout($user_id) {
-        error_log("[Current User Event] 用户登出 - 用户ID: {$user_id}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] 用户登出 - 用户ID: {$user_id}");
         
         $this->push_user_status_update($user_id, 'logged_out', array(
             'logout_time' => current_time('mysql')
@@ -210,7 +210,7 @@ class FD_Current_User_Event_Handler {
      * @param string $new_level 新等级
      */
     public function handle_membership_level_change($user_id, $old_level, $new_level) {
-        error_log("[Current User Event] 会员等级变更 - 用户ID: {$user_id}, 从 {$old_level} 变更为 {$new_level}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] 会员等级变更 - 用户ID: {$user_id}, 从 {$old_level} 变更为 {$new_level}");
         
         $this->push_user_status_update($user_id, 'membership_level_changed', array(
             'old_level' => $old_level,
@@ -226,7 +226,7 @@ class FD_Current_User_Event_Handler {
      * @param int $user_id 用户ID
      */
     public function handle_email_verification($user_id) {
-        error_log("[Current User Event] 邮箱验证状态变更 - 用户ID: {$user_id}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] 邮箱验证状态变更 - 用户ID: {$user_id}");
         
         $is_verified = get_user_meta($user_id, 'email_verified', true);
         
@@ -244,7 +244,7 @@ class FD_Current_User_Event_Handler {
      * @param string|null $phone 手机号（绑定时提供）
      */
     public function handle_phone_binding($user_id, $phone = null) {
-        error_log("[Current User Event] 手机绑定状态变更 - 用户ID: {$user_id}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] 手机绑定状态变更 - 用户ID: {$user_id}");
         
         $is_bound = !empty($phone);
         
@@ -263,7 +263,7 @@ class FD_Current_User_Event_Handler {
      * @param array $subscription_data 订阅数据
      */
     public function handle_subscription_change($user_id, $subscription_data) {
-        error_log("[Current User Event] 订阅状态变更 - 用户ID: {$user_id}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] 订阅状态变更 - 用户ID: {$user_id}");
         
         $this->push_user_status_update($user_id, 'subscription_changed', array(
             'subscription' => $subscription_data,
@@ -281,7 +281,7 @@ class FD_Current_User_Event_Handler {
      */
     private function push_user_status_update($user_id, $event_type, $event_data) {
         if (!$this->websocket_pusher) {
-            error_log("[Current User Event] WebSocket推送器未初始化");
+            FD_WebSocket_Push_Helper::log("[Current User Event] WebSocket推送器未初始化", 'ERROR');
             return;
         }
         
@@ -298,10 +298,10 @@ class FD_Current_User_Event_Handler {
             $target = "user_{$user_id}"; // 私有用户频道
             $this->websocket_pusher->send_event('current-user:updated', $target, $push_data);
             
-            error_log("[Current User Event] 用户状态更新事件已推送 - 用户ID: {$user_id}, 事件: {$event_type}");
+            FD_WebSocket_Push_Helper::log("[Current User Event] 用户状态更新事件已推送 - 用户ID: {$user_id}, 事件: {$event_type}");
             
         } catch (Exception $e) {
-            error_log("[Current User Event] 推送失败: " . $e->getMessage());
+            FD_WebSocket_Push_Helper::log("[Current User Event] 推送失败: " . $e->getMessage(), 'ERROR');
         }
     }
     
@@ -437,7 +437,7 @@ class FD_Current_User_Event_Handler {
             return;
         }
 
-        error_log("[Current User Event] GraphQL用户Mutation - {$mutation_name}, 用户ID: {$user_id}");
+        FD_WebSocket_Push_Helper::log("[Current User Event] GraphQL用户Mutation - {$mutation_name}, 用户ID: {$user_id}");
 
         $this->push_user_status_update($user_id, 'graphql_updated', array(
             'mutation' => $mutation_name,

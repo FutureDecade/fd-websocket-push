@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       FD WebSocket Push
  * Description:       处理在特定 WordPress 事件发生时，向 WebSocket 服务器发送实时推送通知。
- * Version:           1.0.1
+ * Version:           1.0.4
  * Author:            AI Assistant & Project Owner
  * Text Domain:       fd-websocket-push
  * Domain Path:       /languages
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants
-define( 'FD_WEBSOCKET_PUSH_VERSION', '1.0.1' );
+define( 'FD_WEBSOCKET_PUSH_VERSION', '1.0.4' );
 define( 'FD_WEBSOCKET_PUSH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FD_WEBSOCKET_PUSH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FD_WEBSOCKET_PUSH_PLUGIN_FILE', __FILE__ );
@@ -148,16 +148,14 @@ class FD_WebSocket_Push {
      * Plugin activation
      */
     public function activate() {
-        // Add any activation logic here
-        error_log( 'FD WebSocket Push plugin activated' );
+        // Reserved for activation logic.
     }
     
     /**
      * Plugin deactivation
      */
     public function deactivate() {
-        // Add any deactivation logic here
-        error_log( 'FD WebSocket Push plugin deactivated' );
+        // Reserved for deactivation logic.
     }
 }
 

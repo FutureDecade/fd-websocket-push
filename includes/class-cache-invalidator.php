@@ -291,7 +291,7 @@ class FD_WebSocket_Push_Cache_Invalidator {
         FD_WebSocket_Push_Helper::log( 'Invalidating taxonomy caches for post ' . $post_id . ' (reason: ' . $reason . ')' );
 
         // Get all taxonomies for the post
-        $taxonomies = get_object_taxonomies( 'post', 'objects' );
+        $taxonomies = get_object_taxonomies( $post->post_type, 'objects' );
 
         // Track processed taxonomies to avoid duplicate index page invalidation
         $processed_taxonomies = [];
@@ -361,7 +361,7 @@ class FD_WebSocket_Push_Cache_Invalidator {
         $websocket_pusher = FD_WebSocket_Push_WebSocket_Pusher::get_instance();
 
         // Get all taxonomies for the post
-        $taxonomies = get_object_taxonomies( 'post', 'objects' );
+        $taxonomies = get_object_taxonomies( $post->post_type, 'objects' );
 
         // Track processed taxonomies to avoid duplicate notifications
         $processed_taxonomies = [];

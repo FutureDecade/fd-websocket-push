@@ -247,12 +247,16 @@ class FD_WebSocket_Push_Helper {
     }
     
     /**
-     * Log debug message with plugin prefix
+     * Log runtime diagnostics only when explicitly enabled.
      *
      * @param string $message
      * @param string $level
      */
     public static function log( $message, $level = 'DEBUG' ) {
+        if ( ! defined( 'FD_WEBSOCKET_PUSH_DEBUG' ) || true !== FD_WEBSOCKET_PUSH_DEBUG ) {
+            return;
+        }
+
         error_log( '[FD WebSocket Push ' . $level . '] ' . $message );
     }
     
