@@ -23,6 +23,13 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
      * Cache invalidator instance
      */
     private $cache_invalidator;
+
+    /**
+     * Batched taxonomy events collected during the current request.
+     *
+     * @var array<string,array{event_type:string,term_id:int,taxonomy:string,term:WP_Term|null}>
+     */
+    private $pending_taxonomy_events = array();
     
     /**
      * Get single instance
@@ -64,6 +71,9 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
         
         // Additional term edit hook
         add_action( 'edit_term', array( $this, 'handle_term_edit' ), 10, 3 );
+
+        // Flush batched taxonomy events after term/meta save and cache invalidation.
+        add_action( 'shutdown', array( $this, 'flush_pending_taxonomy_events' ), 20 );
     }
     
     /**
@@ -122,14 +132,8 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
         
         FD_WebSocket_Push_Helper::log( 'Processing tag update for term ' . $term_id );
         
-        // Send WebSocket event
-        $this->websocket_pusher->send_taxonomy_updated_event( 'tag:updated', $term_id, $taxonomy );
-        
-        // Invalidate caches
         $term = get_term( $term_id, $taxonomy );
-        if ( $term && ! is_wp_error( $term ) ) {
-            $this->cache_invalidator->revalidate_term_caches( $term );
-        }
+        $this->queue_taxonomy_updated_event( 'tag:updated', $term_id, $taxonomy, $term );
     }
     
     /**
@@ -147,14 +151,8 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
         
         FD_WebSocket_Push_Helper::log( 'Processing category update for term ' . $term_id );
         
-        // Send WebSocket event
-        $this->websocket_pusher->send_taxonomy_updated_event( 'category:updated', $term_id, $taxonomy );
-        
-        // Invalidate caches
         $term = get_term( $term_id, $taxonomy );
-        if ( $term && ! is_wp_error( $term ) ) {
-            $this->cache_invalidator->revalidate_term_caches( $term );
-        }
+        $this->queue_taxonomy_updated_event( 'category:updated', $term_id, $taxonomy, $term );
     }
     
     /**
@@ -177,14 +175,51 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
 
         FD_WebSocket_Push_Helper::log( 'Processing custom taxonomy update for term ' . $term_id . ' in taxonomy ' . $taxonomy );
 
-        // Send WebSocket event
-        $this->websocket_pusher->send_taxonomy_updated_event( 'taxonomy:updated', $term_id, $taxonomy );
-
-        // Invalidate caches
         $term = get_term( $term_id, $taxonomy );
-        if ( $term && ! is_wp_error( $term ) ) {
-            $this->cache_invalidator->revalidate_term_caches( $term );
+        $this->queue_taxonomy_updated_event( 'taxonomy:updated', $term_id, $taxonomy, $term );
+    }
+
+    private function queue_taxonomy_updated_event( $event_type, $term_id, $taxonomy, $term = null ) {
+        if ( is_wp_error( $term ) ) {
+            $term = null;
         }
+
+        $key = $event_type . ':' . $taxonomy . ':' . (int) $term_id;
+
+        $this->pending_taxonomy_events[ $key ] = array(
+            'event_type' => $event_type,
+            'term_id'    => (int) $term_id,
+            'taxonomy'   => $taxonomy,
+            'term'       => $term instanceof WP_Term ? $term : null,
+        );
+
+        FD_WebSocket_Push_Helper::log( 'Queued taxonomy event: ' . $key );
+    }
+
+    /**
+     * Invalidate taxonomy caches before notifying clients to refresh.
+     */
+    public function flush_pending_taxonomy_events() {
+        if ( empty( $this->pending_taxonomy_events ) ) {
+            return;
+        }
+
+        foreach ( $this->pending_taxonomy_events as $event ) {
+            if ( $event['term'] instanceof WP_Term ) {
+                $this->cache_invalidator->revalidate_term_caches( $event['term'] );
+            }
+        }
+
+        foreach ( $this->pending_taxonomy_events as $event ) {
+            $this->websocket_pusher->send_taxonomy_updated_event(
+                $event['event_type'],
+                $event['term_id'],
+                $event['taxonomy']
+            );
+        }
+
+        FD_WebSocket_Push_Helper::log( 'Flushed ' . count( $this->pending_taxonomy_events ) . ' batched taxonomy event(s)' );
+        $this->pending_taxonomy_events = array();
     }
 
     /**

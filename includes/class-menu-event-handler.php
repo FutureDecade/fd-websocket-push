@@ -23,6 +23,20 @@ class FD_WebSocket_Push_Menu_Event_Handler {
      * Cache invalidator instance
      */
     private $cache_invalidator;
+
+    /**
+     * Batched menu events collected during the current request.
+     *
+     * @var array<string,array{menu_id:int,menu_name:string,actions:array<string,bool>}>
+     */
+    private $pending_menu_events = array();
+
+    /**
+     * Whether menu cache invalidation is needed at shutdown.
+     *
+     * @var bool
+     */
+    private $pending_menu_cache_invalidation = false;
     
     /**
      * Get single instance
@@ -61,6 +75,9 @@ class FD_WebSocket_Push_Menu_Event_Handler {
         
         // Alternative hook for menu location updates
         add_action( 'customize_save_after', array( $this, 'handle_customizer_menu_save' ) );
+
+        // Flush batched menu events once WordPress has finished the save request.
+        add_action( 'shutdown', array( $this, 'flush_pending_menu_events' ), 20 );
     }
     
     /**
@@ -79,11 +96,7 @@ class FD_WebSocket_Push_Menu_Event_Handler {
             return;
         }
         
-        // Send WebSocket event
-        $this->websocket_pusher->send_menu_updated_event( $menu_id, 'updated', $menu->name );
-        
-        // Invalidate caches
-        $this->invalidate_menu_caches( $menu );
+        $this->queue_menu_updated_event( $menu_id, 'updated', $menu->name );
     }
     
     /**
@@ -102,11 +115,7 @@ class FD_WebSocket_Push_Menu_Event_Handler {
             return;
         }
         
-        // Send WebSocket event
-        $this->websocket_pusher->send_menu_updated_event( $menu_id, 'created', $menu->name );
-        
-        // Invalidate caches
-        $this->invalidate_menu_caches( $menu );
+        $this->queue_menu_updated_event( $menu_id, 'created', $menu->name );
     }
     
     /**
@@ -121,11 +130,7 @@ class FD_WebSocket_Push_Menu_Event_Handler {
         $menu = wp_get_nav_menu_object( $menu_id );
         $menu_name = $menu && ! is_wp_error( $menu ) ? $menu->name : 'Unknown Menu';
         
-        // Send WebSocket event
-        $this->websocket_pusher->send_menu_updated_event( $menu_id, 'deleted', $menu_name );
-        
-        // Invalidate caches
-        $this->cache_invalidator->revalidate_tag( 'menus' );
+        $this->queue_menu_updated_event( $menu_id, 'deleted', $menu_name );
     }
     
     /**
@@ -145,11 +150,7 @@ class FD_WebSocket_Push_Menu_Event_Handler {
             return;
         }
         
-        // Send WebSocket event
-        $this->websocket_pusher->send_menu_updated_event( $menu_id, 'item_updated', $menu->name );
-        
-        // Invalidate caches
-        $this->invalidate_menu_caches( $menu );
+        $this->queue_menu_updated_event( $menu_id, 'item_updated', $menu->name );
     }
     
     /**
@@ -166,11 +167,7 @@ class FD_WebSocket_Push_Menu_Event_Handler {
         if ( $old_locations !== $new_locations ) {
             FD_WebSocket_Push_Helper::log( 'Processing menu location assignment update' );
             
-            // Send WebSocket event for location changes
-            $this->websocket_pusher->send_menu_updated_event( 0, 'locations_updated', 'Menu Locations' );
-            
-            // Invalidate menu caches
-            $this->cache_invalidator->revalidate_tag( 'menus' );
+            $this->queue_menu_updated_event( 0, 'locations_updated', 'Menu Locations' );
         }
     }
     
@@ -180,11 +177,7 @@ class FD_WebSocket_Push_Menu_Event_Handler {
     public function handle_customizer_menu_save() {
         FD_WebSocket_Push_Helper::log( 'Processing customizer menu save' );
         
-        // Send WebSocket event
-        $this->websocket_pusher->send_menu_updated_event( 0, 'customizer_updated', 'Customizer Menus' );
-        
-        // Invalidate menu caches
-        $this->cache_invalidator->revalidate_tag( 'menus' );
+        $this->queue_menu_updated_event( 0, 'customizer_updated', 'Customizer Menus' );
     }
     
     /**
@@ -192,17 +185,54 @@ class FD_WebSocket_Push_Menu_Event_Handler {
      *
      * @param WP_Term $menu Menu object
      */
-    private function invalidate_menu_caches( $menu ) {
-        if ( ! FD_WebSocket_Push_Helper::is_revalidation_enabled() ) {
-            FD_WebSocket_Push_Helper::log( 'REVALIDATE_SECRET not defined, skipping menu cache invalidation' );
+    private function queue_menu_updated_event( $menu_id, $action, $menu_name ) {
+        $menu_id = (int) $menu_id;
+        $key     = (string) $menu_id;
+
+        if ( ! isset( $this->pending_menu_events[ $key ] ) ) {
+            $this->pending_menu_events[ $key ] = array(
+                'menu_id'   => $menu_id,
+                'menu_name' => $menu_name,
+                'actions'   => array(),
+            );
+        }
+
+        $this->pending_menu_events[ $key ]['menu_name']          = $menu_name;
+        $this->pending_menu_events[ $key ]['actions'][ $action ] = true;
+        $this->pending_menu_cache_invalidation                   = true;
+
+        FD_WebSocket_Push_Helper::log( 'Queued menu updated event: ' . $action . ' for menu: ' . $menu_name );
+    }
+
+    /**
+     * Send one event per changed menu and invalidate menu cache once.
+     */
+    public function flush_pending_menu_events() {
+        if ( empty( $this->pending_menu_events ) && ! $this->pending_menu_cache_invalidation ) {
             return;
         }
-        
-        FD_WebSocket_Push_Helper::log( 'Invalidating menu caches for menu: ' . $menu->name );
-        
-        // Invalidate Next.js menu cache using the 'menus' tag
-        $this->cache_invalidator->revalidate_tag( 'menus' );
-        
-        FD_WebSocket_Push_Helper::log( 'Menu cache invalidation completed for menu: ' . $menu->name );
+
+        if ( ! FD_WebSocket_Push_Helper::is_revalidation_enabled() ) {
+            FD_WebSocket_Push_Helper::log( 'REVALIDATE_SECRET not defined, skipping menu cache invalidation' );
+        } else {
+            FD_WebSocket_Push_Helper::log( 'Invalidating menu caches for batched menu updates' );
+            $this->cache_invalidator->revalidate_tag( 'menus' );
+        }
+
+        foreach ( $this->pending_menu_events as $event ) {
+            $actions = array_keys( $event['actions'] );
+            $action  = count( $actions ) === 1 ? $actions[0] : 'batched';
+
+            $this->websocket_pusher->send_menu_updated_event(
+                $event['menu_id'],
+                $action,
+                $event['menu_name']
+            );
+        }
+
+        FD_WebSocket_Push_Helper::log( 'Flushed ' . count( $this->pending_menu_events ) . ' batched menu update event(s)' );
+
+        $this->pending_menu_events             = array();
+        $this->pending_menu_cache_invalidation = false;
     }
 }
