@@ -40,6 +40,20 @@ class FD_WebSocket_Push_WebSocket_Pusher {
         }
         return self::$instance;
     }
+
+    /**
+     * Create a trace id that can be followed across WP, websocket, and frontend.
+     *
+     * @param string $event_type
+     * @return string
+     */
+    private function create_trace_id( $event_type ) {
+        $event_slug = preg_replace( '/[^a-z0-9]+/i', '-', strtolower( $event_type ) );
+        $event_slug = trim( $event_slug, '-' );
+        $random = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( '', true );
+
+        return 'fd-' . gmdate( 'YmdHis' ) . '-' . $event_slug . '-' . substr( str_replace( '-', '', $random ), 0, 8 );
+    }
     
     /**
      * Send event to WebSocket server
@@ -55,6 +69,21 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             return false;
         }
 
+        $started_at = microtime( true );
+        $existing_trace = isset( $data['_fdTrace'] ) && is_array( $data['_fdTrace'] ) ? $data['_fdTrace'] : [];
+        $trace_id = isset( $existing_trace['traceId'] ) && $existing_trace['traceId']
+            ? sanitize_text_field( $existing_trace['traceId'] )
+            : $this->create_trace_id( $event_type );
+
+        $data['_fdTrace'] = array_merge( $existing_trace, [
+            'traceId' => $trace_id,
+            'event' => $event_type,
+            'target' => $target,
+            'source' => 'wordpress',
+            'wordpressCreatedAt' => gmdate( 'c' ),
+            'wordpressCreatedAtMs' => (int) round( $started_at * 1000 ),
+        ] );
+
         $event_data = [
             'event'  => $event_type,
             'target' => $target,
@@ -62,9 +91,17 @@ class FD_WebSocket_Push_WebSocket_Pusher {
         ];
 
         // 记录事件到数据库
-        $event_id = $this->event_logger->log_event($event_type, $event_data, $target);
+        $event_id = $this->event_logger->log_event($event_type, $event_data, $target, $trace_id);
 
-        FD_WebSocket_Push_Helper::log( 'Sending WebSocket event: ' . $event_type . ' to target: ' . $target . ' (Event ID: ' . $event_id . ')' );
+        if ( $event_id ) {
+            $data['_fdTrace']['eventId'] = (int) $event_id;
+            $event_data['data'] = $data;
+            $this->event_logger->update_event_data( $event_id, $event_data );
+        }
+
+        FD_WebSocket_Push_Helper::log( 'Sending WebSocket event: ' . $event_type . ' to target: ' . $target . ' (Trace ID: ' . $trace_id . ', Event ID: ' . $event_id . ')' );
+
+        do_action( 'fd_websocket_push_before_send', $event_type, $target, $data, $trace_id, $event_id );
 
         $response = wp_remote_post( $this->websocket_url, [
             'method'   => 'POST',
@@ -82,23 +119,31 @@ class FD_WebSocket_Push_WebSocket_Pusher {
 
             // 更新事件状态为失败
             if ($event_id) {
-                $this->event_logger->update_event_status($event_id, 'failed', null, $error_message);
+                $duration_ms = (int) round( ( microtime( true ) - $started_at ) * 1000 );
+                $this->event_logger->update_event_status($event_id, 'failed', null, $error_message, $duration_ms);
             }
+
+            do_action( 'fd_websocket_push_after_send', false, $event_type, $target, $data, $trace_id, $event_id, $error_message );
 
             return $response;
         }
 
         // 更新事件状态为成功（非阻塞请求，假设成功）
         if ($event_id) {
+            $duration_ms = (int) round( ( microtime( true ) - $started_at ) * 1000 );
             $response_data = array(
+                'trace_id' => $trace_id,
                 'status_code' => wp_remote_retrieve_response_code($response),
                 'response_message' => wp_remote_retrieve_response_message($response),
-                'sent_at' => current_time('mysql')
+                'sent_at' => current_time('mysql'),
+                'duration_ms' => $duration_ms
             );
-            $this->event_logger->update_event_status($event_id, 'sent', $response_data);
+            $this->event_logger->update_event_status($event_id, 'sent', $response_data, null, $duration_ms);
         }
 
-        FD_WebSocket_Push_Helper::log( 'WebSocket push sent successfully (non-blocking)' );
+        do_action( 'fd_websocket_push_after_send', true, $event_type, $target, $data, $trace_id, $event_id, null );
+
+        FD_WebSocket_Push_Helper::log( 'WebSocket push sent successfully (non-blocking, Trace ID: ' . $trace_id . ')' );
         return true;
     }
     

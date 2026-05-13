@@ -143,9 +143,11 @@ jQuery(document).ready(function($) {
         html += '<h4>基本信息</h4>';
         html += '<table class="fd-stats-table">';
         html += '<tr><td><strong>ID:</strong></td><td>' + event.id + '</td></tr>';
+        html += '<tr><td><strong>Trace ID:</strong></td><td><code>' + (event.trace_id || '') + '</code></td></tr>';
         html += '<tr><td><strong>事件类型:</strong></td><td>' + event.event_type + '</td></tr>';
         html += '<tr><td><strong>目标房间:</strong></td><td>' + event.target_room + '</td></tr>';
         html += '<tr><td><strong>状态:</strong></td><td><span class="fd-status fd-status-' + event.status + '">' + event.status + '</span></td></tr>';
+        html += '<tr><td><strong>耗时:</strong></td><td>' + (event.duration_ms === null || event.duration_ms === undefined ? '' : event.duration_ms + 'ms') + '</td></tr>';
         html += '<tr><td><strong>创建时间:</strong></td><td>' + event.created_at + '</td></tr>';
         html += '<tr><td><strong>更新时间:</strong></td><td>' + event.updated_at + '</td></tr>';
         html += '</table>';

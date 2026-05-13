@@ -187,6 +187,7 @@ class FD_WebSocket_Push_Admin_Page {
                                 <thead>
                                     <tr>
                                         <th style="width: 50px;">ID</th>
+                                        <th style="width: 210px;">Trace ID</th>
                                         <th style="width: 200px;">事件类型</th>
                                         <th style="width: 150px;">目标房间</th>
                                         <th style="width: 80px; text-align: center;">状态</th>
@@ -199,6 +200,7 @@ class FD_WebSocket_Push_Admin_Page {
                                     <?php foreach ($events as $event): ?>
                                     <tr>
                                         <td><?php echo esc_html($event->id); ?></td>
+                                        <td><code style="font-size: 11px;"><?php echo esc_html($event->trace_id ?? ''); ?></code></td>
                                         <td><code style="font-size: 12px;"><?php echo esc_html($event->event_type); ?></code></td>
                                         <td><code style="font-size: 12px;"><?php echo esc_html($event->target_room); ?></code></td>
                                         <td style="text-align: center;">
@@ -394,6 +396,7 @@ class FD_WebSocket_Push_Admin_Page {
                             <thead>
                                 <tr>
                                     <th>ID</th>
+                                    <th>Trace ID</th>
                                     <th>事件类型</th>
                                     <th>目标房间</th>
                                     <th>状态</th>
@@ -406,6 +409,7 @@ class FD_WebSocket_Push_Admin_Page {
                                 <?php foreach ($events as $event): ?>
                                 <tr>
                                     <td><?php echo esc_html($event->id); ?></td>
+                                    <td><code><?php echo esc_html($event->trace_id ?? ''); ?></code></td>
                                     <td><?php echo esc_html($event->event_type); ?></td>
                                     <td><?php echo esc_html($event->target_room); ?></td>
                                     <td>

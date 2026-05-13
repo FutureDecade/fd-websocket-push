@@ -24,6 +24,20 @@ class FD_WebSocket_Push_Event_Logger {
         
         // 注册激活钩子
         register_activation_hook(FD_WEBSOCKET_PUSH_PLUGIN_FILE, array($this, 'create_table'));
+
+        $this->maybe_upgrade_table();
+    }
+
+    /**
+     * Create or upgrade the table when the plugin code changes.
+     */
+    private function maybe_upgrade_table() {
+        $schema_version = get_option('fd_websocket_push_event_logger_schema_version', '');
+
+        if (!$this->table_exists() || $schema_version !== FD_WEBSOCKET_PUSH_VERSION) {
+            $this->create_table();
+            update_option('fd_websocket_push_event_logger_schema_version', FD_WEBSOCKET_PUSH_VERSION, false);
+        }
     }
     
     /**
@@ -36,15 +50,18 @@ class FD_WebSocket_Push_Event_Logger {
         
         $sql = "CREATE TABLE {$this->table_name} (
             id bigint(20) NOT NULL AUTO_INCREMENT,
+            trace_id varchar(80) DEFAULT NULL,
             event_type varchar(100) NOT NULL,
             event_data longtext,
             target_room varchar(100),
             status varchar(20) DEFAULT 'pending',
             response_data longtext,
             error_message text,
+            duration_ms int(11) DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
+            KEY trace_id (trace_id),
             KEY event_type (event_type),
             KEY status (status),
             KEY created_at (created_at)
@@ -59,18 +76,19 @@ class FD_WebSocket_Push_Event_Logger {
     /**
      * 记录事件
      */
-    public function log_event($event_type, $event_data, $target_room = 'public') {
+    public function log_event($event_type, $event_data, $target_room = 'public', $trace_id = null) {
         global $wpdb;
         
         $result = $wpdb->insert(
             $this->table_name,
             array(
+                'trace_id' => $trace_id,
                 'event_type' => $event_type,
                 'event_data' => json_encode($event_data, JSON_UNESCAPED_UNICODE),
                 'target_room' => $target_room,
                 'status' => 'pending'
             ),
-            array('%s', '%s', '%s', '%s')
+            array('%s', '%s', '%s', '%s', '%s')
         );
         
         if ($result === false) {
@@ -79,35 +97,68 @@ class FD_WebSocket_Push_Event_Logger {
         }
         
         $event_id = $wpdb->insert_id;
-        FD_WebSocket_Push_Helper::log("[Event Logger] Event logged: ID={$event_id}, Type={$event_type}, Room={$target_room}");
+        FD_WebSocket_Push_Helper::log("[Event Logger] Event logged: ID={$event_id}, Trace={$trace_id}, Type={$event_type}, Room={$target_room}");
         
         return $event_id;
+    }
+
+    /**
+     * Update the stored event payload after the database id is known.
+     */
+    public function update_event_data($event_id, $event_data) {
+        global $wpdb;
+
+        $result = $wpdb->update(
+            $this->table_name,
+            array(
+                'event_data' => json_encode($event_data, JSON_UNESCAPED_UNICODE),
+                'updated_at' => current_time('mysql')
+            ),
+            array('id' => $event_id),
+            array('%s', '%s'),
+            array('%d')
+        );
+
+        if ($result === false) {
+            FD_WebSocket_Push_Helper::log('[Event Logger] Failed to update event data: ' . $wpdb->last_error, 'ERROR');
+            return false;
+        }
+
+        return true;
     }
     
     /**
      * 更新事件状态
      */
-    public function update_event_status($event_id, $status, $response_data = null, $error_message = null) {
+    public function update_event_status($event_id, $status, $response_data = null, $error_message = null, $duration_ms = null) {
         global $wpdb;
         
         $update_data = array(
             'status' => $status,
             'updated_at' => current_time('mysql')
         );
+        $update_formats = array('%s', '%s');
         
         if ($response_data !== null) {
             $update_data['response_data'] = json_encode($response_data, JSON_UNESCAPED_UNICODE);
+            $update_formats[] = '%s';
         }
         
         if ($error_message !== null) {
             $update_data['error_message'] = $error_message;
+            $update_formats[] = '%s';
+        }
+
+        if ($duration_ms !== null) {
+            $update_data['duration_ms'] = intval($duration_ms);
+            $update_formats[] = '%d';
         }
         
         $result = $wpdb->update(
             $this->table_name,
             $update_data,
             array('id' => $event_id),
-            array('%s', '%s', '%s', '%s'),
+            $update_formats,
             array('%d')
         );
         
