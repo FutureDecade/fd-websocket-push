@@ -69,6 +69,25 @@ class FD_WebSocket_Push_Post_Event_Handler {
         if ( ! $update ) {
             return;
         }
+
+        if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+            FD_WebSocket_Push_Helper::log( 'Skipping post update handler for autosave/revision: ' . $post_id );
+            return;
+        }
+
+        if ( ! $post instanceof WP_Post ) {
+            $post = get_post( $post_id );
+        }
+
+        if ( ! $post ) {
+            FD_WebSocket_Push_Helper::log( 'Skipping post update handler because post was not found: ' . $post_id, 'ERROR' );
+            return;
+        }
+
+        if ( ! FD_WebSocket_Push_Helper::is_public_post_type( $post->post_type ) ) {
+            FD_WebSocket_Push_Helper::log( 'Skipping post update handler because post type "' . $post->post_type . '" is not public' );
+            return;
+        }
         
         FD_WebSocket_Push_Helper::log( 'Processing post update for post ' . $post_id . ' (type: ' . $post->post_type . ', status: ' . $post->post_status . ')' );
         
