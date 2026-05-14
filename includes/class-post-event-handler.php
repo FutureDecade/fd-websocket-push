@@ -90,6 +90,10 @@ class FD_WebSocket_Push_Post_Event_Handler {
         }
         
         FD_WebSocket_Push_Helper::log( 'Processing post update for post ' . $post_id . ' (type: ' . $post->post_type . ', status: ' . $post->post_status . ')' );
+
+        // Invalidate caches before notifying clients so router.refresh reads fresh list data.
+        $this->cache_invalidator->invalidate_post_caches( $post_id, $post );
+        $this->cache_invalidator->invalidate_list_caches_on_post_update( $post_id, $post );
         
         // Send WebSocket events
         // post:updated 事件现在包含了所有必要的信息（公开信息 + 受保护内容）
@@ -101,10 +105,6 @@ class FD_WebSocket_Push_Post_Event_Handler {
         if ( $post->post_status === 'publish' ) {
             $this->websocket_pusher->send_post_updated_for_lists_event( $post_id, $post );
         }
-        
-        // Invalidate caches
-        $this->cache_invalidator->invalidate_post_caches( $post_id, $post );
-        $this->cache_invalidator->invalidate_list_caches_on_post_update( $post_id, $post );
     }
     
     /**
@@ -134,12 +134,12 @@ class FD_WebSocket_Push_Post_Event_Handler {
         }
         
         FD_WebSocket_Push_Helper::log( 'Processing post insert for post ' . $post_id . ' (type: ' . $post->post_type . ', title: ' . $post->post_title . ')' );
-        
-        // Send WebSocket event
-        $this->websocket_pusher->send_post_inserted_event( $post_id, $post );
-        
+
         // Invalidate caches
         $this->cache_invalidator->invalidate_caches_on_post_insert( $post_id, $post );
+
+        // Send WebSocket event
+        $this->websocket_pusher->send_post_inserted_event( $post_id, $post );
     }
     
     /**
@@ -162,12 +162,12 @@ class FD_WebSocket_Push_Post_Event_Handler {
         }
         
         FD_WebSocket_Push_Helper::log( 'Processing post delete for post ' . $post_id . ' (type: ' . $post->post_type . ', title: ' . $post->post_title . ')' );
-        
-        // Send WebSocket event
-        $this->websocket_pusher->send_post_deleted_event( $post_id, $post );
-        
+
         // Invalidate caches
         $this->cache_invalidator->invalidate_caches_on_post_delete( $post_id, $post );
+
+        // Send WebSocket event
+        $this->websocket_pusher->send_post_deleted_event( $post_id, $post );
     }
     
     /**
@@ -210,12 +210,12 @@ class FD_WebSocket_Push_Post_Event_Handler {
         }
         
         FD_WebSocket_Push_Helper::log( 'Processing post status transition for post ' . $post->ID . ' (type: ' . $post->post_type . ', event: ' . $event_type . ')' );
-        
-        // Send WebSocket event
-        $this->websocket_pusher->send_post_status_transition_event( $event_type, $post, $old_status, $new_status );
-        
+
         // Invalidate caches
         $this->cache_invalidator->invalidate_caches_on_post_status_change( $post->ID, $post, $old_status, $new_status );
+
+        // Send WebSocket event
+        $this->websocket_pusher->send_post_status_transition_event( $event_type, $post, $old_status, $new_status );
     }
 
     /**
@@ -260,6 +260,9 @@ class FD_WebSocket_Push_Post_Event_Handler {
 
         FD_WebSocket_Push_Helper::log( 'Author change detected for post ' . $post_id . '. Old author: ' . $old_author_user->user_nicename . ' -> New author: ' . $new_author_user->user_nicename );
 
+        $this->cache_invalidator->revalidate_tag( 'author:' . $old_author_user->user_nicename );
+        $this->cache_invalidator->revalidate_tag( 'author:' . $new_author_user->user_nicename );
+
         // --- 1) 旧作者列表：发送 list:item-removed ---
         $affected_removed = [
             [
@@ -269,9 +272,6 @@ class FD_WebSocket_Push_Post_Event_Handler {
             ],
         ];
         $this->websocket_pusher->send_list_item_event( 'list:item-removed', $post_id, $affected_removed );
-
-        // 旧作者缓存失效
-        $this->cache_invalidator->revalidate_tag( 'author:' . $old_author_user->user_nicename );
 
         // --- 2) 新作者列表：发送 list:item-added ---
         $affected_added = [

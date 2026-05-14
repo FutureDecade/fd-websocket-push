@@ -27,9 +27,16 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
     /**
      * Batched taxonomy events collected during the current request.
      *
-     * @var array<string,array{event_type:string,term_id:int,taxonomy:string,term:WP_Term|null}>
+     * @var array<string,array{event_type:string,term_id:int,taxonomy:string,term:WP_Term|null,previous_term:array|null}>
      */
     private $pending_taxonomy_events = array();
+
+    /**
+     * Term snapshots captured before an edit mutates slug/name data.
+     *
+     * @var array<string,array{slug:string,name:string,taxonomy:string}>
+     */
+    private $previous_terms = array();
     
     /**
      * Get single instance
@@ -70,6 +77,7 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
         }
         
         // Additional term edit hook
+        add_action( 'pre_edit_term', array( $this, 'capture_previous_term' ), 10, 2 );
         add_action( 'edit_term', array( $this, 'handle_term_edit' ), 10, 3 );
 
         // Flush batched taxonomy events after term/meta save and cache invalidation.
@@ -185,15 +193,40 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
         }
 
         $key = $event_type . ':' . $taxonomy . ':' . (int) $term_id;
+        $previous_key = $taxonomy . ':' . (int) $term_id;
 
         $this->pending_taxonomy_events[ $key ] = array(
-            'event_type' => $event_type,
-            'term_id'    => (int) $term_id,
-            'taxonomy'   => $taxonomy,
-            'term'       => $term instanceof WP_Term ? $term : null,
+            'event_type'    => $event_type,
+            'term_id'       => (int) $term_id,
+            'taxonomy'      => $taxonomy,
+            'term'          => $term instanceof WP_Term ? $term : null,
+            'previous_term' => isset( $this->previous_terms[ $previous_key ] ) ? $this->previous_terms[ $previous_key ] : null,
         );
 
         FD_WebSocket_Push_Helper::log( 'Queued taxonomy event: ' . $key );
+    }
+
+    /**
+     * Capture term data before edits so old slug caches can be invalidated.
+     *
+     * @param int    $term_id
+     * @param string $taxonomy
+     */
+    public function capture_previous_term( $term_id, $taxonomy ) {
+        if ( ! in_array( $taxonomy, [ 'category', 'post_tag' ], true ) && ! FD_WebSocket_Push_Helper::is_public_taxonomy( $taxonomy ) ) {
+            return;
+        }
+
+        $term = get_term( $term_id, $taxonomy );
+        if ( ! $term || is_wp_error( $term ) ) {
+            return;
+        }
+
+        $this->previous_terms[ $taxonomy . ':' . (int) $term_id ] = array(
+            'slug'     => $term->slug,
+            'name'     => $term->name,
+            'taxonomy' => $taxonomy,
+        );
     }
 
     /**
@@ -208,13 +241,30 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
             if ( $event['term'] instanceof WP_Term ) {
                 $this->cache_invalidator->revalidate_term_caches( $event['term'] );
             }
+
+            if ( ! empty( $event['previous_term']['slug'] ) ) {
+                $current_slug = $event['term'] instanceof WP_Term ? $event['term']->slug : '';
+                if ( $current_slug !== $event['previous_term']['slug'] ) {
+                    $this->cache_invalidator->revalidate_term_slug(
+                        $event['taxonomy'],
+                        $event['previous_term']['slug']
+                    );
+                }
+            }
         }
 
         foreach ( $this->pending_taxonomy_events as $event ) {
+            $extra_data = array();
+            if ( ! empty( $event['previous_term']['slug'] ) ) {
+                $extra_data['previousSlug'] = $event['previous_term']['slug'];
+                $extra_data['previousName'] = $event['previous_term']['name'];
+            }
+
             $this->websocket_pusher->send_taxonomy_updated_event(
                 $event['event_type'],
                 $event['term_id'],
-                $event['taxonomy']
+                $event['taxonomy'],
+                $extra_data
             );
         }
 

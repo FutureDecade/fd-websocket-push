@@ -404,15 +404,15 @@ class FD_WebSocket_Push_WebSocket_Pusher {
      * @param int $term_id
      * @param string $taxonomy
      */
-    public function send_taxonomy_updated_event( $event_type, $term_id, $taxonomy ) {
+    public function send_taxonomy_updated_event( $event_type, $term_id, $taxonomy, $extra_data = [] ) {
         $term = get_term( $term_id, $taxonomy );
         
-        $data = [
+        $data = array_merge( [
             'termId'   => $term_id,
             'taxonomy' => $taxonomy,
             'slug'     => $term ? $term->slug : '',
             'name'     => $term ? $term->name : '',
-        ];
+        ], is_array( $extra_data ) ? $extra_data : [] );
         
         return $this->send_event( $event_type, 'public', $data );
     }

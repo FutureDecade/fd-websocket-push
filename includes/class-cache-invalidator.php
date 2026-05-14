@@ -79,6 +79,42 @@ class FD_WebSocket_Push_Cache_Invalidator {
             'blocking' => false,
         ] );
     }
+
+    /**
+     * Revalidate list tags shared by archive pages and Page Composer modules.
+     *
+     * @param string $post_type The affected post type.
+     */
+    private function revalidate_global_list_tags( $post_type ) {
+        if ( empty( $post_type ) ) {
+            return;
+        }
+
+        $tags = [
+            'post-type:' . $post_type,
+        ];
+
+        switch ( $post_type ) {
+            case 'post':
+                $tags[] = 'homepage-posts';
+                $tags[] = 'page-composer:posts';
+                $tags[] = 'page-composer-editorial-modules';
+                break;
+            case 'event':
+                $tags[] = 'page-composer:events';
+                break;
+            case 'app':
+                $tags[] = 'page-composer:apps';
+                break;
+            case 'product':
+                $tags[] = 'page-composer:products';
+                break;
+        }
+
+        foreach ( array_unique( $tags ) as $tag ) {
+            $this->revalidate_tag( $tag );
+        }
+    }
     
     /**
      * Revalidate all necessary tags for a given term
@@ -90,9 +126,20 @@ class FD_WebSocket_Push_Cache_Invalidator {
             return;
         }
         
-        $taxonomy = $term->taxonomy;
-        $slug = $term->slug;
-        
+        $this->revalidate_term_slug( $term->taxonomy, $term->slug );
+    }
+
+    /**
+     * Revalidate all necessary tags for a taxonomy term slug.
+     *
+     * @param string $taxonomy The taxonomy name.
+     * @param string $slug The term slug.
+     */
+    public function revalidate_term_slug( $taxonomy, $slug ) {
+        if ( empty( $taxonomy ) || empty( $slug ) ) {
+            return;
+        }
+
         switch ( $taxonomy ) {
             case 'category':
                 $this->revalidate_tag( 'category-index-page' );
@@ -114,6 +161,13 @@ class FD_WebSocket_Push_Cache_Invalidator {
                 $this->revalidate_path( '/taxonomy/' . $taxonomy . '/' . $slug );
                 break;
         }
+
+        $taxonomy_object = get_taxonomy( $taxonomy );
+        if ( $taxonomy_object && ! empty( $taxonomy_object->object_type ) ) {
+            foreach ( $taxonomy_object->object_type as $post_type ) {
+                $this->revalidate_global_list_tags( $post_type );
+            }
+        }
     }
     
     /**
@@ -127,14 +181,6 @@ class FD_WebSocket_Push_Cache_Invalidator {
         $short_uuid = get_post_meta( $post_id, 'short_uuid', true );
         if ( ! empty( $short_uuid ) ) {
             $this->revalidate_tag( 'post:' . $short_uuid );
-        }
-
-        // Invalidate homepage cache
-        $this->revalidate_tag( 'homepage-posts' );
-
-        // Invalidate cache for the post type archive (e.g., /note, /book)
-        if ( ! empty( $post->post_type ) ) {
-            $this->revalidate_tag( 'post-type:' . $post->post_type );
         }
 
         // Invalidate cache for the author archive page
@@ -176,13 +222,8 @@ class FD_WebSocket_Push_Cache_Invalidator {
             return;
         }
         
-        // 1. Invalidate homepage cache (all posts affect homepage)
-        $this->revalidate_tag( 'homepage-posts' );
-        
-        // 2. Invalidate custom post type page cache
-        if ( $post->post_type !== 'post' ) {
-            $this->revalidate_tag( 'post-type:' . $post->post_type );
-        }
+        // 1. Invalidate archive and Page Composer list caches.
+        $this->revalidate_global_list_tags( $post->post_type );
         
         // 3. Invalidate related category page caches
         $post_categories = wp_get_post_categories( $post_id );
@@ -224,9 +265,6 @@ class FD_WebSocket_Push_Cache_Invalidator {
      * @param WP_Post $post
      */
     public function invalidate_caches_on_post_insert( $post_id, $post ) {
-        // Invalidate homepage cache
-        $this->invalidate_homepage_cache( $post_id, 'post insert' );
-
         // Invalidate list caches
         $this->invalidate_list_caches_on_post_update( $post_id, $post );
 
@@ -243,9 +281,6 @@ class FD_WebSocket_Push_Cache_Invalidator {
      * @param WP_Post $post
      */
     public function invalidate_caches_on_post_delete( $post_id, $post ) {
-        // Invalidate homepage cache
-        $this->invalidate_homepage_cache( $post_id, 'post delete' );
-
         // Invalidate list caches
         $this->invalidate_list_caches_on_post_update( $post_id, $post );
 
@@ -264,9 +299,6 @@ class FD_WebSocket_Push_Cache_Invalidator {
      * @param string $new_status
      */
     public function invalidate_caches_on_post_status_change( $post_id, $post, $old_status, $new_status ) {
-        // Invalidate homepage cache
-        $this->invalidate_homepage_cache( $post_id, 'post status change' );
-
         // Invalidate list caches
         $this->invalidate_list_caches_on_post_update( $post_id, $post );
 
@@ -408,6 +440,12 @@ class FD_WebSocket_Push_Cache_Invalidator {
         }
 
         FD_WebSocket_Push_Helper::log( 'Invalidating homepage cache for post ' . $post_id . ' (reason: ' . $reason . ')' );
+
+        $post_type = get_post_type( $post_id );
+        if ( $post_type ) {
+            $this->revalidate_global_list_tags( $post_type );
+            return;
+        }
 
         $this->revalidate_tag( 'homepage-posts' );
     }
