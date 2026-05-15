@@ -47,12 +47,49 @@ class FD_WebSocket_Push_WebSocket_Pusher {
      * @param string $event_type
      * @return string
      */
-    private function create_trace_id( $event_type ) {
+    public function create_trace_id( $event_type ) {
         $event_slug = preg_replace( '/[^a-z0-9]+/i', '-', strtolower( $event_type ) );
         $event_slug = trim( $event_slug, '-' );
         $random = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( '', true );
 
         return 'fd-' . gmdate( 'YmdHis' ) . '-' . $event_slug . '-' . substr( str_replace( '-', '', $random ), 0, 8 );
+    }
+
+    /**
+     * Create a trace context for a logical backend mutation.
+     *
+     * @param string $event_type
+     * @param array $context
+     * @return array
+     */
+    public function create_trace_context( $event_type, $context = [] ) {
+        $started_at = microtime( true );
+
+        return array_merge( is_array( $context ) ? $context : [], [
+            'traceId' => $this->create_trace_id( $event_type ),
+            'event' => $event_type,
+            'source' => 'wordpress',
+            'wordpressCreatedAt' => gmdate( 'c' ),
+            'wordpressCreatedAtMs' => (int) round( $started_at * 1000 ),
+        ] );
+    }
+
+    /**
+     * Attach an existing trace context to outgoing payload data.
+     *
+     * @param array $data
+     * @param array $trace_context
+     * @return array
+     */
+    private function attach_trace_context( $data, $trace_context = [] ) {
+        if ( empty( $trace_context ) || ! is_array( $trace_context ) ) {
+            return $data;
+        }
+
+        $existing_trace = isset( $data['_fdTrace'] ) && is_array( $data['_fdTrace'] ) ? $data['_fdTrace'] : [];
+        $data['_fdTrace'] = array_merge( $existing_trace, $trace_context );
+
+        return $data;
     }
     
     /**
@@ -153,7 +190,7 @@ class FD_WebSocket_Push_WebSocket_Pusher {
      * @param int $post_id
      * @param WP_Post $post
      */
-    public function send_post_updated_event( $post_id, $post ) {
+    public function send_post_updated_event( $post_id, $post, $trace_context = [] ) {
         $target_room = FD_WebSocket_Push_Helper::get_post_access_level( $post_id, $post );
 
         // 获取分类信息
@@ -232,6 +269,8 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             'previewValue'     => $preview_value,
         ];
 
+        $public_data = $this->attach_trace_context( $public_data, $trace_context );
+
         // 准备完整信息（包含受保护内容）
         $full_data = array_merge( $public_data, [
             'content'   => $post->post_content,
@@ -268,7 +307,7 @@ class FD_WebSocket_Push_WebSocket_Pusher {
      * @param int $post_id
      * @param WP_Post $post
      */
-    public function send_post_updated_for_lists_event( $post_id, $post ) {
+    public function send_post_updated_for_lists_event( $post_id, $post, $trace_context = [] ) {
         // Get post categories
         $post_categories = wp_get_post_categories( $post_id );
         $categories = array_map( function( $cat_id ) {
@@ -327,6 +366,8 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             'tags'             => $tags,
             'customTaxonomies' => $custom_taxonomies_data,
         ];
+
+        $data = $this->attach_trace_context( $data, $trace_context );
         
         return $this->send_event( 'post:updated-for-lists', 'public', $data );
     }
@@ -337,7 +378,7 @@ class FD_WebSocket_Push_WebSocket_Pusher {
      * @param int $post_id
      * @param WP_Post $post
      */
-    public function send_post_inserted_event( $post_id, $post ) {
+    public function send_post_inserted_event( $post_id, $post, $trace_context = [] ) {
         $data = [
             'postId'    => $post_id,
             'postType'  => $post->post_type,
@@ -349,6 +390,8 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             'date'      => $post->post_date,
             'modified'  => $post->post_modified,
         ];
+
+        $data = $this->attach_trace_context( $data, $trace_context );
         
         return $this->send_event( 'post:inserted', 'public', $data );
     }
@@ -359,7 +402,7 @@ class FD_WebSocket_Push_WebSocket_Pusher {
      * @param int $post_id
      * @param WP_Post $post
      */
-    public function send_post_deleted_event( $post_id, $post ) {
+    public function send_post_deleted_event( $post_id, $post, $trace_context = [] ) {
         $data = [
             'postId'    => $post_id,
             'postType'  => $post->post_type,
@@ -368,6 +411,8 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             'slug'      => $post->post_name,
             'title'     => $post->post_title,
         ];
+
+        $data = $this->attach_trace_context( $data, $trace_context );
         
         return $this->send_event( 'post:deleted', 'public', $data );
     }
@@ -380,7 +425,7 @@ class FD_WebSocket_Push_WebSocket_Pusher {
      * @param string $old_status
      * @param string $new_status
      */
-    public function send_post_status_transition_event( $event_type, $post, $old_status, $new_status ) {
+    public function send_post_status_transition_event( $event_type, $post, $old_status, $new_status, $trace_context = [] ) {
         $data = [
             'postId'     => $post->ID,
             'postType'   => $post->post_type,
@@ -393,6 +438,8 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             'date'       => $post->post_date,
             'modified'   => $post->post_modified,
         ];
+
+        $data = $this->attach_trace_context( $data, $trace_context );
         
         return $this->send_event( $event_type, 'public', $data );
     }
@@ -404,7 +451,7 @@ class FD_WebSocket_Push_WebSocket_Pusher {
      * @param int $term_id
      * @param string $taxonomy
      */
-    public function send_taxonomy_updated_event( $event_type, $term_id, $taxonomy, $extra_data = [] ) {
+    public function send_taxonomy_updated_event( $event_type, $term_id, $taxonomy, $extra_data = [], $trace_context = [] ) {
         $term = get_term( $term_id, $taxonomy );
         
         $data = array_merge( [
@@ -413,6 +460,8 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             'slug'     => $term ? $term->slug : '',
             'name'     => $term ? $term->name : '',
         ], is_array( $extra_data ) ? $extra_data : [] );
+
+        $data = $this->attach_trace_context( $data, $trace_context );
         
         return $this->send_event( $event_type, 'public', $data );
     }
@@ -424,11 +473,13 @@ class FD_WebSocket_Push_WebSocket_Pusher {
      * @param int $post_id
      * @param array $affected_terms
      */
-    public function send_list_item_event( $event_type, $post_id, $affected_terms ) {
+    public function send_list_item_event( $event_type, $post_id, $affected_terms, $trace_context = [] ) {
         $data = [
             'postId'        => $post_id,
             'affectedTerms' => $affected_terms,
         ];
+
+        $data = $this->attach_trace_context( $data, $trace_context );
         
         return $this->send_event( $event_type, 'public', $data );
     }

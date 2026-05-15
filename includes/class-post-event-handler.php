@@ -91,19 +91,30 @@ class FD_WebSocket_Push_Post_Event_Handler {
         
         FD_WebSocket_Push_Helper::log( 'Processing post update for post ' . $post_id . ' (type: ' . $post->post_type . ', status: ' . $post->post_status . ')' );
 
+        $trace_context = $this->websocket_pusher->create_trace_context( 'post:update', [
+            'postId'   => (int) $post_id,
+            'postType' => $post->post_type,
+            'status'   => $post->post_status,
+        ] );
+
         // Invalidate caches before notifying clients so router.refresh reads fresh list data.
-        $this->cache_invalidator->invalidate_post_caches( $post_id, $post );
-        $this->cache_invalidator->invalidate_list_caches_on_post_update( $post_id, $post );
+        $this->cache_invalidator->set_trace_context( $trace_context );
+        try {
+            $this->cache_invalidator->invalidate_post_caches( $post_id, $post );
+            $this->cache_invalidator->invalidate_list_caches_on_post_update( $post_id, $post );
+        } finally {
+            $this->cache_invalidator->clear_trace_context();
+        }
         
         // Send WebSocket events
         // post:updated 事件现在包含了所有必要的信息（公开信息 + 受保护内容）
         // 对于付费墙文章：公开信息推送给所有用户，完整信息推送给有权限用户
         // 对于公开文章：完整信息推送给所有用户
-        $this->websocket_pusher->send_post_updated_event( $post_id, $post );
+        $this->websocket_pusher->send_post_updated_event( $post_id, $post, $trace_context );
         
         // Send list update event for published posts to ensure CPT and other lists are updated
         if ( $post->post_status === 'publish' ) {
-            $this->websocket_pusher->send_post_updated_for_lists_event( $post_id, $post );
+            $this->websocket_pusher->send_post_updated_for_lists_event( $post_id, $post, $trace_context );
         }
     }
     
@@ -135,11 +146,22 @@ class FD_WebSocket_Push_Post_Event_Handler {
         
         FD_WebSocket_Push_Helper::log( 'Processing post insert for post ' . $post_id . ' (type: ' . $post->post_type . ', title: ' . $post->post_title . ')' );
 
+        $trace_context = $this->websocket_pusher->create_trace_context( 'post:insert', [
+            'postId'   => (int) $post_id,
+            'postType' => $post->post_type,
+            'status'   => $post->post_status,
+        ] );
+
         // Invalidate caches
-        $this->cache_invalidator->invalidate_caches_on_post_insert( $post_id, $post );
+        $this->cache_invalidator->set_trace_context( $trace_context );
+        try {
+            $this->cache_invalidator->invalidate_caches_on_post_insert( $post_id, $post );
+        } finally {
+            $this->cache_invalidator->clear_trace_context();
+        }
 
         // Send WebSocket event
-        $this->websocket_pusher->send_post_inserted_event( $post_id, $post );
+        $this->websocket_pusher->send_post_inserted_event( $post_id, $post, $trace_context );
     }
     
     /**
@@ -163,11 +185,22 @@ class FD_WebSocket_Push_Post_Event_Handler {
         
         FD_WebSocket_Push_Helper::log( 'Processing post delete for post ' . $post_id . ' (type: ' . $post->post_type . ', title: ' . $post->post_title . ')' );
 
+        $trace_context = $this->websocket_pusher->create_trace_context( 'post:delete', [
+            'postId'   => (int) $post_id,
+            'postType' => $post->post_type,
+            'status'   => $post->post_status,
+        ] );
+
         // Invalidate caches
-        $this->cache_invalidator->invalidate_caches_on_post_delete( $post_id, $post );
+        $this->cache_invalidator->set_trace_context( $trace_context );
+        try {
+            $this->cache_invalidator->invalidate_caches_on_post_delete( $post_id, $post );
+        } finally {
+            $this->cache_invalidator->clear_trace_context();
+        }
 
         // Send WebSocket event
-        $this->websocket_pusher->send_post_deleted_event( $post_id, $post );
+        $this->websocket_pusher->send_post_deleted_event( $post_id, $post, $trace_context );
     }
     
     /**
@@ -211,11 +244,23 @@ class FD_WebSocket_Push_Post_Event_Handler {
         
         FD_WebSocket_Push_Helper::log( 'Processing post status transition for post ' . $post->ID . ' (type: ' . $post->post_type . ', event: ' . $event_type . ')' );
 
+        $trace_context = $this->websocket_pusher->create_trace_context( 'post:status-transition', [
+            'postId'    => (int) $post->ID,
+            'postType'  => $post->post_type,
+            'oldStatus' => $old_status,
+            'newStatus' => $new_status,
+        ] );
+
         // Invalidate caches
-        $this->cache_invalidator->invalidate_caches_on_post_status_change( $post->ID, $post, $old_status, $new_status );
+        $this->cache_invalidator->set_trace_context( $trace_context );
+        try {
+            $this->cache_invalidator->invalidate_caches_on_post_status_change( $post->ID, $post, $old_status, $new_status );
+        } finally {
+            $this->cache_invalidator->clear_trace_context();
+        }
 
         // Send WebSocket event
-        $this->websocket_pusher->send_post_status_transition_event( $event_type, $post, $old_status, $new_status );
+        $this->websocket_pusher->send_post_status_transition_event( $event_type, $post, $old_status, $new_status, $trace_context );
     }
 
     /**

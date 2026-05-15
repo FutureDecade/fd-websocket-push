@@ -13,6 +13,20 @@ class FD_WebSocket_Push_Cache_Invalidator {
      * Single instance of the class
      */
     private static $instance = null;
+
+    /**
+     * Trace context shared by cache revalidation requests in the current action.
+     *
+     * @var array
+     */
+    private $trace_context = [];
+
+    /**
+     * Event logger instance for cache revalidation diagnostics.
+     *
+     * @var FD_WebSocket_Push_Event_Logger|null
+     */
+    private $event_logger = null;
     
     /**
      * Get single instance
@@ -22,6 +36,54 @@ class FD_WebSocket_Push_Cache_Invalidator {
             self::$instance = new self();
         }
         return self::$instance;
+    }
+
+    /**
+     * Set trace context for subsequent revalidation calls in this request.
+     *
+     * @param array $trace_context
+     */
+    public function set_trace_context( $trace_context ) {
+        $this->trace_context = is_array( $trace_context ) ? $trace_context : [];
+    }
+
+    /**
+     * Clear trace context after a batched operation is complete.
+     */
+    public function clear_trace_context() {
+        $this->trace_context = [];
+    }
+
+    /**
+     * Get active trace context.
+     *
+     * @return array
+     */
+    private function get_trace_context() {
+        return is_array( $this->trace_context ) ? $this->trace_context : [];
+    }
+
+    /**
+     * Get active trace id.
+     *
+     * @return string
+     */
+    private function get_trace_id() {
+        $trace_context = $this->get_trace_context();
+        return ! empty( $trace_context['traceId'] ) ? sanitize_text_field( $trace_context['traceId'] ) : '';
+    }
+
+    /**
+     * Get event logger.
+     *
+     * @return FD_WebSocket_Push_Event_Logger
+     */
+    private function get_event_logger() {
+        if ( null === $this->event_logger ) {
+            $this->event_logger = new FD_WebSocket_Push_Event_Logger();
+        }
+
+        return $this->event_logger;
     }
 
     /**
@@ -38,6 +100,11 @@ class FD_WebSocket_Push_Cache_Invalidator {
         $headers = [
             'x-revalidate-secret' => $revalidate_secret,
         ];
+
+        $trace_id = $this->get_trace_id();
+        if ( ! empty( $trace_id ) ) {
+            $headers['x-fd-trace-id'] = $trace_id;
+        }
 
         if ( defined( 'FD_FRONTEND_URL' ) && ! empty( FD_FRONTEND_URL ) ) {
             $host = wp_parse_url( FD_FRONTEND_URL, PHP_URL_HOST );
@@ -63,6 +130,25 @@ class FD_WebSocket_Push_Cache_Invalidator {
      * @param string $revalidate_secret
      */
     private function send_revalidation_request( $endpoint, $body, $description, $revalidate_secret ) {
+        $trace_id = $this->get_trace_id();
+        $started_at = microtime( true );
+        $event_type = $endpoint === 'revalidate-path' ? 'cache:revalidate-path' : 'cache:revalidate-tag';
+        $event_id = $this->get_event_logger()->log_event(
+            $event_type,
+            [
+                'event'  => $event_type,
+                'target' => 'frontend',
+                'data'   => [
+                    'endpoint'    => $endpoint,
+                    'body'        => $body,
+                    'description' => $description,
+                    'traceId'     => $trace_id,
+                ],
+            ],
+            'frontend',
+            $trace_id
+        );
+
         $response = wp_remote_post( 'http://frontend:3000/api/' . $endpoint, [
             'method'   => 'POST',
             'headers'  => $this->get_revalidation_headers( $revalidate_secret ),
@@ -72,17 +158,46 @@ class FD_WebSocket_Push_Cache_Invalidator {
         ] );
 
         if ( is_wp_error( $response ) ) {
-            FD_WebSocket_Push_Helper::log( 'Revalidation request failed for ' . $description . ': ' . $response->get_error_message(), 'ERROR' );
+            $duration_ms = (int) round( ( microtime( true ) - $started_at ) * 1000 );
+            FD_WebSocket_Push_Helper::log( 'Revalidation request failed for ' . $description . $this->format_trace_log_suffix( $trace_id ) . ': ' . $response->get_error_message(), 'ERROR' );
+            if ( $event_id ) {
+                $this->get_event_logger()->update_event_status( $event_id, 'failed', null, $response->get_error_message(), $duration_ms );
+            }
             return;
         }
 
         $status_code = (int) wp_remote_retrieve_response_code( $response );
+        $duration_ms = (int) round( ( microtime( true ) - $started_at ) * 1000 );
+        $response_data = [
+            'status_code' => $status_code,
+            'body'        => wp_remote_retrieve_body( $response ),
+            'duration_ms' => $duration_ms,
+        ];
+
         if ( $status_code < 200 || $status_code >= 300 ) {
             FD_WebSocket_Push_Helper::log(
-                'Revalidation request returned HTTP ' . $status_code . ' for ' . $description . ': ' . wp_remote_retrieve_body( $response ),
+                'Revalidation request returned HTTP ' . $status_code . ' for ' . $description . $this->format_trace_log_suffix( $trace_id ) . ': ' . wp_remote_retrieve_body( $response ),
                 'ERROR'
             );
+            if ( $event_id ) {
+                $this->get_event_logger()->update_event_status( $event_id, 'failed', $response_data, 'HTTP ' . $status_code, $duration_ms );
+            }
+            return;
         }
+
+        if ( $event_id ) {
+            $this->get_event_logger()->update_event_status( $event_id, 'sent', $response_data, null, $duration_ms );
+        }
+    }
+
+    /**
+     * Format trace id for log messages.
+     *
+     * @param string $trace_id
+     * @return string
+     */
+    private function format_trace_log_suffix( $trace_id ) {
+        return ! empty( $trace_id ) ? ' (Trace ID: ' . $trace_id . ')' : '';
     }
     
     /**
@@ -469,7 +584,13 @@ class FD_WebSocket_Push_Cache_Invalidator {
 
                 // Send event for the first term in this taxonomy (to trigger index page update)
                 $first_term = reset( $terms );
-                $websocket_pusher->send_taxonomy_updated_event( $event_type, $first_term->term_id, $taxonomy->name );
+                $websocket_pusher->send_taxonomy_updated_event(
+                    $event_type,
+                    $first_term->term_id,
+                    $taxonomy->name,
+                    [],
+                    $this->get_trace_context()
+                );
 
                 $processed_taxonomies[] = $taxonomy->name;
             }

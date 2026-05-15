@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       FD WebSocket Push
  * Description:       处理在特定 WordPress 事件发生时，向 WebSocket 服务器发送实时推送通知。
- * Version:           1.0.9
+ * Version:           1.0.10
  * Author:            AI Assistant & Project Owner
  * Text Domain:       fd-websocket-push
  * Domain Path:       /languages
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants
-define( 'FD_WEBSOCKET_PUSH_VERSION', '1.0.9' );
+define( 'FD_WEBSOCKET_PUSH_VERSION', '1.0.10' );
 define( 'FD_WEBSOCKET_PUSH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FD_WEBSOCKET_PUSH_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'FD_WEBSOCKET_PUSH_PLUGIN_FILE', __FILE__ );
@@ -67,6 +67,7 @@ class FD_WebSocket_Push {
         require_once FD_WEBSOCKET_PUSH_INCLUDES_DIR . 'class-helper.php';
         require_once FD_WEBSOCKET_PUSH_INCLUDES_DIR . 'class-event-logger.php';
         require_once FD_WEBSOCKET_PUSH_INCLUDES_DIR . 'class-cache-invalidator.php';
+        require_once FD_WEBSOCKET_PUSH_INCLUDES_DIR . 'class-debug-api.php';
         require_once FD_WEBSOCKET_PUSH_INCLUDES_DIR . 'class-websocket-pusher.php';
         require_once FD_WEBSOCKET_PUSH_INCLUDES_DIR . 'class-post-event-handler.php';
         require_once FD_WEBSOCKET_PUSH_INCLUDES_DIR . 'class-taxonomy-event-handler.php';
@@ -117,6 +118,7 @@ class FD_WebSocket_Push {
         FD_WebSocket_Push_Payment_Event_Handler::get_instance();
         FD_WebSocket_Push_Notification_Event_Handler::get_instance();
         FD_WebSocket_Push_Messaging_Event_Handler::get_instance();
+        new FD_WebSocket_Push_Debug_API();
 
         // 初始化管理页面
         if (is_admin()) {

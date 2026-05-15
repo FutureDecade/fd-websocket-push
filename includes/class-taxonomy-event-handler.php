@@ -27,7 +27,7 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
     /**
      * Batched taxonomy events collected during the current request.
      *
-     * @var array<string,array{event_type:string,term_id:int,taxonomy:string,term:WP_Term|null,previous_term:array|null}>
+     * @var array<string,array{event_type:string,term_id:int,taxonomy:string,term:WP_Term|null,previous_term:array|null,trace_context:array}>
      */
     private $pending_taxonomy_events = array();
 
@@ -201,6 +201,11 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
             'taxonomy'      => $taxonomy,
             'term'          => $term instanceof WP_Term ? $term : null,
             'previous_term' => isset( $this->previous_terms[ $previous_key ] ) ? $this->previous_terms[ $previous_key ] : null,
+            'trace_context' => $this->websocket_pusher->create_trace_context( 'taxonomy:update', [
+                'termId'   => (int) $term_id,
+                'taxonomy' => $taxonomy,
+                'event'    => $event_type,
+            ] ),
         );
 
         FD_WebSocket_Push_Helper::log( 'Queued taxonomy event: ' . $key );
@@ -238,6 +243,8 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
         }
 
         foreach ( $this->pending_taxonomy_events as $event ) {
+            $this->cache_invalidator->set_trace_context( $event['trace_context'] );
+
             if ( $event['term'] instanceof WP_Term ) {
                 $this->cache_invalidator->revalidate_term_caches( $event['term'] );
             }
@@ -251,6 +258,8 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
                     );
                 }
             }
+
+            $this->cache_invalidator->clear_trace_context();
         }
 
         foreach ( $this->pending_taxonomy_events as $event ) {
@@ -264,7 +273,8 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
                 $event['event_type'],
                 $event['term_id'],
                 $event['taxonomy'],
-                $extra_data
+                $extra_data,
+                $event['trace_context']
             );
         }
 
@@ -416,7 +426,12 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
         if ( ! empty( $added_tt_ids ) ) {
             FD_WebSocket_Push_Helper::log( 'set_object_terms detected ADDED terms for post ' . $object_id . ': ' . wp_json_encode( $added_tt_ids ) );
 
+            $trace_context = $this->websocket_pusher->create_trace_context( 'list:item-added', [
+                'postId'   => (int) $object_id,
+                'taxonomy' => $taxonomy,
+            ] );
             $affected_terms = [];
+            $this->cache_invalidator->set_trace_context( $trace_context );
             foreach ( $added_tt_ids as $tt_id ) {
                 $term = get_term_by( 'term_taxonomy_id', $tt_id, $taxonomy );
                 if ( ! $term || is_wp_error( $term ) ) continue;
@@ -430,10 +445,11 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
                 // Invalidate term caches
                 $this->cache_invalidator->revalidate_term_caches( $term );
             }
+            $this->cache_invalidator->clear_trace_context();
 
             // Send WebSocket event for added terms
             if ( ! empty( $affected_terms ) ) {
-                $this->websocket_pusher->send_list_item_event( 'list:item-added', $object_id, $affected_terms );
+                $this->websocket_pusher->send_list_item_event( 'list:item-added', $object_id, $affected_terms, $trace_context );
             }
         }
 
@@ -441,7 +457,12 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
         if ( ! empty( $removed_tt_ids ) ) {
             FD_WebSocket_Push_Helper::log( 'set_object_terms detected REMOVED terms for post ' . $object_id . ': ' . wp_json_encode( $removed_tt_ids ) );
 
+            $trace_context = $this->websocket_pusher->create_trace_context( 'list:item-removed', [
+                'postId'   => (int) $object_id,
+                'taxonomy' => $taxonomy,
+            ] );
             $affected_terms = [];
+            $this->cache_invalidator->set_trace_context( $trace_context );
             foreach ( $removed_tt_ids as $tt_id ) {
                 $term = get_term_by( 'term_taxonomy_id', $tt_id, $taxonomy );
                 if ( ! $term || is_wp_error( $term ) ) continue;
@@ -455,10 +476,11 @@ class FD_WebSocket_Push_Taxonomy_Event_Handler {
                 // Invalidate term caches
                 $this->cache_invalidator->revalidate_term_caches( $term );
             }
+            $this->cache_invalidator->clear_trace_context();
 
             // Send WebSocket event for removed terms
             if ( ! empty( $affected_terms ) ) {
-                $this->websocket_pusher->send_list_item_event( 'list:item-removed', $object_id, $affected_terms );
+                $this->websocket_pusher->send_list_item_event( 'list:item-removed', $object_id, $affected_terms, $trace_context );
             }
         }
 
