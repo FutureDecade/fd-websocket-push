@@ -23,6 +23,67 @@ class FD_WebSocket_Push_Cache_Invalidator {
         }
         return self::$instance;
     }
+
+    /**
+     * Build headers for internal Next.js revalidation requests.
+     *
+     * The request URL uses the Docker service name, but fd-frontend enforces
+     * the public bound host in production. Send the public frontend host as the
+     * Host header so the middleware allows the request.
+     *
+     * @param string $revalidate_secret
+     * @return array
+     */
+    private function get_revalidation_headers( $revalidate_secret ) {
+        $headers = [
+            'x-revalidate-secret' => $revalidate_secret,
+        ];
+
+        if ( defined( 'FD_FRONTEND_URL' ) && ! empty( FD_FRONTEND_URL ) ) {
+            $host = wp_parse_url( FD_FRONTEND_URL, PHP_URL_HOST );
+            $port = wp_parse_url( FD_FRONTEND_URL, PHP_URL_PORT );
+
+            if ( ! empty( $host ) ) {
+                $headers['Host'] = $host;
+                if ( ! empty( $port ) ) {
+                    $headers['Host'] .= ':' . $port;
+                }
+            }
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Send a revalidation request and log failures explicitly.
+     *
+     * @param string $endpoint
+     * @param string $body
+     * @param string $description
+     * @param string $revalidate_secret
+     */
+    private function send_revalidation_request( $endpoint, $body, $description, $revalidate_secret ) {
+        $response = wp_remote_post( 'http://frontend:3000/api/' . $endpoint, [
+            'method'   => 'POST',
+            'headers'  => $this->get_revalidation_headers( $revalidate_secret ),
+            'body'     => $body,
+            'blocking' => true,
+            'timeout'  => 2,
+        ] );
+
+        if ( is_wp_error( $response ) ) {
+            FD_WebSocket_Push_Helper::log( 'Revalidation request failed for ' . $description . ': ' . $response->get_error_message(), 'ERROR' );
+            return;
+        }
+
+        $status_code = (int) wp_remote_retrieve_response_code( $response );
+        if ( $status_code < 200 || $status_code >= 300 ) {
+            FD_WebSocket_Push_Helper::log(
+                'Revalidation request returned HTTP ' . $status_code . ' for ' . $description . ': ' . wp_remote_retrieve_body( $response ),
+                'ERROR'
+            );
+        }
+    }
     
     /**
      * Send a revalidation request to Next.js by tag
@@ -42,14 +103,7 @@ class FD_WebSocket_Push_Cache_Invalidator {
         
         FD_WebSocket_Push_Helper::log( 'Revalidate tag queued: ' . $tag );
         
-        wp_remote_post( 'http://frontend:3000/api/revalidate', [
-            'method'   => 'POST',
-            'headers'  => [
-                'x-revalidate-secret' => $revalidate_secret,
-            ],
-            'body'     => $tag,
-            'blocking' => false,
-        ] );
+        $this->send_revalidation_request( 'revalidate', $tag, 'tag: ' . $tag, $revalidate_secret );
     }
     
     /**
@@ -70,14 +124,7 @@ class FD_WebSocket_Push_Cache_Invalidator {
         
         FD_WebSocket_Push_Helper::log( 'Revalidate path queued: ' . $path );
         
-        wp_remote_post( 'http://frontend:3000/api/revalidate-path', [
-            'method'   => 'POST',
-            'headers'  => [
-                'x-revalidate-secret' => $revalidate_secret,
-            ],
-            'body'     => $path,
-            'blocking' => false,
-        ] );
+        $this->send_revalidation_request( 'revalidate-path', $path, 'path: ' . $path, $revalidate_secret );
     }
 
     /**
@@ -92,6 +139,7 @@ class FD_WebSocket_Push_Cache_Invalidator {
 
         $tags = [
             'post-type:' . $post_type,
+            'cpt-list:' . $post_type,
         ];
 
         switch ( $post_type ) {
