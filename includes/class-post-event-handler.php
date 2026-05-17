@@ -23,6 +23,13 @@ class FD_WebSocket_Push_Post_Event_Handler {
      * Cache invalidator instance
      */
     private $cache_invalidator;
+
+    /**
+     * Page IDs already handled by a Page Composer save action in this request.
+     *
+     * @var array<int,bool>
+     */
+    private $page_composer_processed_posts = [];
     
     /**
      * Get single instance
@@ -49,12 +56,60 @@ class FD_WebSocket_Push_Post_Event_Handler {
      */
     private function register_hooks() {
         // Post lifecycle events
-        add_action( 'save_post', array( $this, 'handle_post_update' ), 10, 3 );
-        add_action( 'wp_insert_post', array( $this, 'handle_post_insert' ), 10, 3 );
+        add_action( 'wp_after_insert_post', array( $this, 'handle_after_insert_post' ), 10, 4 );
         add_action( 'before_delete_post', array( $this, 'handle_post_delete' ), 10, 2 );
         add_action( 'transition_post_status', array( $this, 'handle_post_status_transition' ), 10, 3 );
+        add_action( 'fd_page_composer_page_state_saved', array( $this, 'handle_page_composer_page_state_saved' ), 10, 2 );
         // Detect author changes after a post is updated (receives both before/after objects)
         add_action( 'post_updated', array( $this, 'handle_author_change' ), 10, 3 );
+    }
+
+    /**
+     * Handle post insert/update after the post, terms, and meta are saved.
+     *
+     * REST editor saves taxonomy relationships after wp_insert_post/save_post.
+     * Using wp_after_insert_post prevents push payloads from reading stale tags.
+     *
+     * @param int          $post_id
+     * @param WP_Post      $post
+     * @param bool         $update
+     * @param null|WP_Post $post_before
+     */
+    public function handle_after_insert_post( $post_id, $post, $update, $post_before ) {
+        if ( isset( $this->page_composer_processed_posts[ (int) $post_id ] ) ) {
+            FD_WebSocket_Push_Helper::log( 'Skipping wp_after_insert_post for page composer processed post: ' . $post_id );
+            return;
+        }
+
+        if ( $update ) {
+            $this->handle_post_update( $post_id, $post, true );
+            return;
+        }
+
+        $this->handle_post_insert( $post_id, $post, false );
+    }
+
+    /**
+     * Handle Page Composer standalone saves that only update page meta.
+     *
+     * @param int   $post_id
+     * @param array $context
+     */
+    public function handle_page_composer_page_state_saved( $post_id, $context = [] ) {
+        $post_id = (int) $post_id;
+        if ( $post_id <= 0 ) {
+            return;
+        }
+
+        $post = get_post( $post_id );
+        if ( ! $post || $post->post_type !== 'page' ) {
+            return;
+        }
+
+        $this->page_composer_processed_posts[ $post_id ] = true;
+        FD_WebSocket_Push_Helper::log( 'Processing Page Composer state save for page ' . $post_id );
+
+        $this->handle_post_update( $post_id, $post, true );
     }
     
     /**

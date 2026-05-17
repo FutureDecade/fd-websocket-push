@@ -260,6 +260,7 @@ class FD_WebSocket_Push_WebSocket_Pusher {
             'date'             => $post->post_date,
             'modified'         => $post->post_modified,
             'featuredImage'    => get_the_post_thumbnail_url( $post_id, 'full' ) ?: '', // 获取特色图片URL
+            'isFrontPage'      => $post->post_type === 'page' && (int) get_option( 'page_on_front' ) === (int) $post_id,
             'categories'       => $categories,
             'tags'             => $tags,
             'customTaxonomies' => $custom_taxonomies_data,

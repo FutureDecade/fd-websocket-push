@@ -278,6 +278,34 @@ class FD_WebSocket_Push_Cache_Invalidator {
             $this->revalidate_tag( $tag );
         }
     }
+
+    /**
+     * Revalidate page detail caches used by fd-frontend.
+     *
+     * @param int     $post_id
+     * @param WP_Post $post
+     */
+    private function revalidate_page_detail_caches( $post_id, $post ) {
+        if ( ! $post || $post->post_type !== 'page' ) {
+            return;
+        }
+
+        $slug = (string) $post->post_name;
+
+        $this->revalidate_tag( 'page:' . (int) $post_id );
+
+        if ( ! empty( $slug ) ) {
+            $this->revalidate_tag( 'page:' . $slug );
+            $this->revalidate_path( '/page/' . $slug );
+            $this->revalidate_path( '/' . $slug );
+        }
+
+        $front_page_id = (int) get_option( 'page_on_front' );
+        if ( $front_page_id === (int) $post_id ) {
+            $this->revalidate_tag( 'front-page' );
+            $this->revalidate_path( '/' );
+        }
+    }
     
     /**
      * Revalidate all necessary tags for a given term
@@ -340,8 +368,15 @@ class FD_WebSocket_Push_Cache_Invalidator {
      * @param WP_Post $post
      */
     public function invalidate_post_caches( $post_id, $post ) {
+        if ( $post && $post->post_type === 'page' ) {
+            $this->revalidate_page_detail_caches( $post_id, $post );
+        }
+
         // Invalidate cache for the post detail page
-        $short_uuid = get_post_meta( $post_id, 'short_uuid', true );
+        $short_uuid = get_post_meta( $post_id, '_fd_short_uuid', true );
+        if ( empty( $short_uuid ) ) {
+            $short_uuid = get_post_meta( $post_id, 'short_uuid', true );
+        }
         if ( ! empty( $short_uuid ) ) {
             $this->revalidate_tag( 'post:' . $short_uuid );
         }
