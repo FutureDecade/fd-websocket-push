@@ -254,6 +254,21 @@ class FD_WebSocket_Push_Event_Logger {
         
         return $result;
     }
+
+    /**
+     * Clear all stored debug event rows.
+     */
+    public function clear_events() {
+        global $wpdb;
+
+        $result = $wpdb->query("DELETE FROM {$this->table_name}");
+
+        if ($result !== false) {
+            FD_WebSocket_Push_Helper::log("[Event Logger] Cleared {$result} debug events");
+        }
+
+        return $result;
+    }
     
     /**
      * 获取最近的事件

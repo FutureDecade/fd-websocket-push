@@ -23,9 +23,16 @@ class FD_WebSocket_Push_Debug_API {
 
     public function register_routes() {
         register_rest_route( 'fd-websocket-push/v1', '/debug/events', array(
-            'methods'             => 'GET',
-            'callback'            => array( $this, 'get_events' ),
-            'permission_callback' => array( $this, 'authorize_request' ),
+            array(
+                'methods'             => 'GET',
+                'callback'            => array( $this, 'get_events' ),
+                'permission_callback' => array( $this, 'authorize_request' ),
+            ),
+            array(
+                'methods'             => 'DELETE',
+                'callback'            => array( $this, 'clear_events' ),
+                'permission_callback' => array( $this, 'authorize_request' ),
+            ),
         ) );
     }
 
@@ -72,6 +79,31 @@ class FD_WebSocket_Push_Debug_API {
             'service' => 'fd-websocket-push',
             'now'     => gmdate( 'c' ),
             'events'  => array_map( array( $this, 'format_event' ), $events ),
+        ) );
+    }
+
+    /**
+     * Clear WordPress-side websocket event logs.
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response
+     */
+    public function clear_events( $request ) {
+        $deleted = $this->event_logger->clear_events();
+
+        if ( false === $deleted ) {
+            return new WP_Error(
+                'fd_websocket_push_debug_clear_failed',
+                'Failed to clear debug events',
+                array( 'status' => 500 )
+            );
+        }
+
+        return rest_ensure_response( array(
+            'ok'      => true,
+            'service' => 'fd-websocket-push',
+            'now'     => gmdate( 'c' ),
+            'deleted' => (int) $deleted,
         ) );
     }
 
