@@ -1,6 +1,6 @@
 <?php
 /**
- * Notification event handler for FD WebSocket Push plugin
+ * Notification event handler for Lingcoo WebSocket Push plugin
  * Handles real-time WebSocket push notifications for user notifications
  */
 

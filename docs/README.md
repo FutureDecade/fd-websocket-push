@@ -1,6 +1,6 @@
-# FD WebSocket Push 插件文档
+# Lingcoo WebSocket Push 插件文档
 
-欢迎使用 FD WebSocket Push 插件的完整文档系统！
+欢迎使用 Lingcoo WebSocket Push 插件的完整文档系统！
 
 ## 📚 文档导航
 

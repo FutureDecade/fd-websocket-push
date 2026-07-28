@@ -1,4 +1,4 @@
-# FD Pusher vs FD WebSocket Push 功能对比分析
+# FD Pusher vs Lingcoo WebSocket Push 功能对比分析
 
 ## 概述
 
@@ -8,7 +8,7 @@
 
 | 项目 | fd-pusher | fd-websocket-push | 状态 |
 |------|-----------|-------------------|------|
-| 插件名称 | FD Pusher | FD WebSocket Push | ✅ 已更新 |
+| 插件名称 | FD Pusher | Lingcoo WebSocket Push | ✅ 已更新 |
 | 版本号 | 1.0.0 | 1.0.0 | ✅ 一致 |
 | 描述 | 处理在特定 WordPress 事件发生时，向 WebSocket 服务器发送实时推送通知 | 处理在特定 WordPress 事件发生时，向 WebSocket 服务器发送实时推送通知 | ✅ 一致 |
 | 文件结构 | 单一文件 (1656行) | 模块化结构 (7个文件) | ✅ 重构完成 |
@@ -171,7 +171,7 @@
 | 常量未定义检查 | ✅ | ✅ | ✅ 一致 |
 | WebSocket 推送错误处理 | ✅ | ✅ | ✅ 一致 |
 | 详细调试日志 | ✅ | ✅ | ✅ 一致 |
-| 错误日志前缀 | `[FD Pusher]` | `[FD WebSocket Push]` | ✅ 已更新 |
+| 错误日志前缀 | `[FD Pusher]` | `[Lingcoo WebSocket Push]` | ✅ 已更新 |
 
 ## 9. 向后兼容性
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Cache invalidation handler for FD WebSocket Push plugin
+ * Cache invalidation handler for Lingcoo WebSocket Push plugin
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

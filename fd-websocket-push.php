@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       FD WebSocket Push
+ * Plugin Name:       Lingcoo WebSocket Push
  * Description:       处理在特定 WordPress 事件发生时，向 WebSocket 服务器发送实时推送通知。
  * Version:           1.0.12
- * Author:            AI Assistant & Project Owner
+ * Author:            Lingcoo
  * Text Domain:       fd-websocket-push
  * Domain Path:       /languages
  */

@@ -1,6 +1,6 @@
 <?php
 /**
- * Discussion Settings event handler for FD WebSocket Push plugin
+ * Discussion Settings event handler for Lingcoo WebSocket Push plugin
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

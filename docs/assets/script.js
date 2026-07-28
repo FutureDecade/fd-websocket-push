@@ -1,5 +1,5 @@
 /**
- * FD WebSocket Push 文档交互脚本
+ * Lingcoo WebSocket Push 文档交互脚本
  */
 
 document.addEventListener('DOMContentLoaded', function() {

@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-本功能为FD WebSocket Push插件添加了通知和私信的实时推送支持，实现了以下功能：
+本功能为Lingcoo WebSocket Push插件添加了通知和私信的实时推送支持，实现了以下功能：
 
 - ✅ 通知创建时的实时WebSocket推送
 - ✅ 私信发送时的实时WebSocket推送  

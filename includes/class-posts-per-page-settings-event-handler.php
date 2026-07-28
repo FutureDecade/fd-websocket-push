@@ -1,6 +1,6 @@
 <?php
 /**
- * Posts Per Page Settings event handler for FD WebSocket Push plugin
+ * Posts Per Page Settings event handler for Lingcoo WebSocket Push plugin
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

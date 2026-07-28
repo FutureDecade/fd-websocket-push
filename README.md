@@ -1,4 +1,4 @@
-# FD WebSocket Push Plugin
+# Lingcoo WebSocket Push Plugin
 
 这是一个重构后的WordPress插件，用于处理在特定WordPress事件发生时向WebSocket服务器发送实时推送通知。
 

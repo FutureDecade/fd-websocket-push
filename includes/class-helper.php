@@ -1,6 +1,6 @@
 <?php
 /**
- * Helper utility class for FD WebSocket Push plugin
+ * Helper utility class for Lingcoo WebSocket Push plugin
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -257,7 +257,7 @@ class FD_WebSocket_Push_Helper {
             return;
         }
 
-        error_log( '[FD WebSocket Push ' . $level . '] ' . $message );
+        error_log( '[Lingcoo WebSocket Push ' . $level . '] ' . $message );
     }
     
     /**

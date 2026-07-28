@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>故障排除 - FD WebSocket Push 插件文档</title>
+    <title>故障排除 - Lingcoo WebSocket Push 插件文档</title>
     <link rel="stylesheet" href="assets/style.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 </head>
@@ -13,7 +13,7 @@
             <div class="header-content">
                 <h1 class="logo">
                     <span class="logo-icon">🚀</span>
-                    FD WebSocket Push
+                    Lingcoo WebSocket Push
                 </h1>
                 <p class="subtitle">故障排除指南</p>
             </div>
@@ -90,8 +90,8 @@ define( 'REVALIDATE_SECRET', 'your-revalidate-key' );</code></pre>
                     <div class="troubleshoot-item">
                         <h4>❌ 问题：错误日志显示 "SECRET not defined"</h4>
                         <p><strong>错误消息示例：</strong></p>
-                        <pre><code>[FD WebSocket Push ERROR] FD_WEBSOCKET_PUSH_SECRET not defined
-[FD WebSocket Push ERROR] REVALIDATE_SECRET not defined</code></pre>
+                        <pre><code>[Lingcoo WebSocket Push ERROR] FD_WEBSOCKET_PUSH_SECRET not defined
+[Lingcoo WebSocket Push ERROR] REVALIDATE_SECRET not defined</code></pre>
                         <p><strong>解决方案：</strong></p>
                         <ol>
                             <li>在 <code>wp-config.php</code> 中添加缺失的常量</li>
@@ -143,7 +143,7 @@ define( 'REVALIDATE_SECRET', 'your-revalidate-key' );</code></pre>
                     <div class="troubleshoot-item">
                         <h4>❌ 问题：WebSocket 推送失败</h4>
                         <p><strong>错误消息示例：</strong></p>
-                        <pre><code>[FD WebSocket Push ERROR] WebSocket push failed: Connection timeout</code></pre>
+                        <pre><code>[Lingcoo WebSocket Push ERROR] WebSocket push failed: Connection timeout</code></pre>
                         <p><strong>解决方案：</strong></p>
                         <ol>
                             <li>检查 WebSocket 服务器状态</li>
@@ -195,7 +195,7 @@ define( 'REVALIDATE_SECRET', 'your-revalidate-key' );</code></pre>
                     <div class="troubleshoot-item">
                         <h4>❌ 问题：缓存失效请求失败</h4>
                         <p><strong>错误消息示例：</strong></p>
-                        <pre><code>[FD WebSocket Push ERROR] REVALIDATE_SECRET is not defined. Cannot revalidate tag: homepage-posts</code></pre>
+                        <pre><code>[Lingcoo WebSocket Push ERROR] REVALIDATE_SECRET is not defined. Cannot revalidate tag: homepage-posts</code></pre>
                         <p><strong>解决方案：</strong></p>
                         <ol>
                             <li>在 <code>wp-config.php</code> 中定义 <code>REVALIDATE_SECRET</code></li>
@@ -222,9 +222,9 @@ define( 'REVALIDATE_SECRET', 'your-revalidate-key' );</code></pre>
                         <ol>
                             <li>确认插件版本 ≥ 1.0.1（此问题在该版本中已修复）</li>
                             <li>检查错误日志中是否有分类法相关的处理记录：
-                                <pre><code>[FD WebSocket Push] Invalidating taxonomy caches for post 123 (reason: post status change)
-[FD WebSocket Push] Invalidating index cache tag: category-index-page
-[FD WebSocket Push] Notifying taxonomy updates for post 123</code></pre>
+                                <pre><code>[Lingcoo WebSocket Push] Invalidating taxonomy caches for post 123 (reason: post status change)
+[Lingcoo WebSocket Push] Invalidating index cache tag: category-index-page
+[Lingcoo WebSocket Push] Notifying taxonomy updates for post 123</code></pre>
                             </li>
                             <li>验证分类法缓存标签是否正确失效：
                                 <ul>
@@ -236,9 +236,9 @@ define( 'REVALIDATE_SECRET', 'your-revalidate-key' );</code></pre>
                                 </ul>
                             </li>
                             <li>检查WebSocket事件是否发送：
-                                <pre><code>[FD WebSocket Push] Sending WebSocket event: category:updated
-[FD WebSocket Push] Sending WebSocket event: tag:updated
-[FD WebSocket Push] Sending WebSocket event: taxonomy:updated</code></pre>
+                                <pre><code>[Lingcoo WebSocket Push] Sending WebSocket event: category:updated
+[Lingcoo WebSocket Push] Sending WebSocket event: tag:updated
+[Lingcoo WebSocket Push] Sending WebSocket event: taxonomy:updated</code></pre>
                             </li>
                         </ol>
                         <p><strong>测试方法：</strong></p>
@@ -355,16 +355,16 @@ add_action( 'init', function() {
                     
                     <h4>正常运行的日志示例</h4>
                     <pre><code># 插件激活
-[FD WebSocket Push] FD WebSocket Push plugin activated
+[Lingcoo WebSocket Push] Lingcoo WebSocket Push plugin activated
 
 # 文章更新事件
-[FD WebSocket Push] Processing post update for post 123 (type: post, status: publish)
-[FD WebSocket Push] Sending WebSocket event: post:updated to target: public
-[FD WebSocket Push] WebSocket push sent successfully (non-blocking)
+[Lingcoo WebSocket Push] Processing post update for post 123 (type: post, status: publish)
+[Lingcoo WebSocket Push] Sending WebSocket event: post:updated to target: public
+[Lingcoo WebSocket Push] WebSocket push sent successfully (non-blocking)
 
 # 缓存失效
-[FD WebSocket Push] Revalidate tag queued: homepage-posts
-[FD WebSocket Push] Invalidated list caches for post 123 (post)</code></pre>
+[Lingcoo WebSocket Push] Revalidate tag queued: homepage-posts
+[Lingcoo WebSocket Push] Invalidated list caches for post 123 (post)</code></pre>
 
                     <h4>错误日志分析</h4>
                     <table class="info-table">
@@ -403,7 +403,7 @@ add_action( 'init', function() {
 
         <footer class="footer">
             <div class="footer-content">
-                <p>&copy; 2024 FD WebSocket Push Plugin. 保留所有权利。</p>
+                <p>&copy; 2024 Lingcoo WebSocket Push Plugin. 保留所有权利。</p>
                 <p>
                     <a href="https://github.com/your-repo/fd-websocket-push" target="_blank">GitHub</a> |
                     <a href="mailto:support@example.com">技术支持</a> |

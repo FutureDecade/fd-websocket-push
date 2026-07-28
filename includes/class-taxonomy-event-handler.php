@@ -1,6 +1,6 @@
 <?php
 /**
- * Taxonomy event handler for FD WebSocket Push plugin
+ * Taxonomy event handler for Lingcoo WebSocket Push plugin
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

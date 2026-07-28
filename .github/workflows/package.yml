@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       trigger_test_server_update:
-        description: Trigger fd-headless-wp-system deploy after packaging
+        description: Trigger Lingcoo EasyDeploy Headless WP deployment after packaging
         required: true
         default: "false"
       release_tag_for_test_server:
@@ -80,7 +80,7 @@ jobs:
           fi
 
           gh workflow run "Deploy Test Server" \
-            -R FutureDecade/fd-headless-wp-system \
+            -R LingcooTech/lingcoo-easydeploy-headless-wp-system-delivery \
             --ref main \
             -f force_wordpress_asset_fetch=false \
             -f fd_websocket_push_release_tag="${RELEASE_TAG}"
